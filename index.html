@@ -31,6 +31,13 @@
                             </div>
                             <div class="card__body">
                                 <div class="form-group">
+                                    <label class="form-label">문서 유형 선택</label>
+                                    <select id="documentType" class="form-control">
+                                        <option value="external">대외문서 (기관 간 발송)</option>
+                                        <option value="internal">내부결재 문서</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
                                     <label for="documentInput" class="form-label sr-only">공문서 초안 입력</label>
                                     <textarea 
                                         id="documentInput" 
