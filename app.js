@@ -1,4 +1,4 @@
-// 공문서 검증 및 교정 프로그램 JavaScript - 띄어쓰기 규칙 대폭 보강
+// 공문서 검증 및 교정 프로그램 JavaScript - 날짜 형식 정확히 수정
 
 // 문서 유형 설정
 let documentType = 'external';
@@ -6,7 +6,7 @@ let documentType = 'external';
 // 검증 규칙
 const validationRules = {
     dateFormat: {
-        message: "날짜는 '2024. 8. 1.(목)' 형식으로 표기해야 합니다.",
+        message: "날짜는 '2025. 9. 10.(월)' 형식으로 표기해야 합니다.",
         severity: "error"
     },
     timeFormat: {
@@ -488,28 +488,89 @@ function checkMoneyFormat(text) {
     currentValidationResults.warnings.push(...issues.filter(i => i.type === 'warning'));
 }
 
-// 날짜/시간 표기법 검사 - 보완된 로직
+// 날짜/시간 표기법 검사 - 정확한 날짜 형식으로 수정
 function checkDateTimeFormat(text) {
     const issues = [];
 
-    // 1. 잘못된 날짜 형식 검사 (년월일 표기)
-    const wrongDatePattern = /\d{4}년\s*\d{1,2}월\s*\d{1,2}일/g;
-    let match;
-    while ((match = wrongDatePattern.exec(text)) !== null) {
-        const corrected = match[0].replace(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/, '$1. $2. $3.');
+    // 1. 잘못된 날짜 형식 검사 - 년월일 한국어 표기
+    const koreanDatePattern = /\d{4}년\s*\d{1,2}월\s*\d{1,2}일/g;
+    let koreanMatch;
+    while ((koreanMatch = koreanDatePattern.exec(text)) !== null) {
+        // 2025년 9월 10일 → 2025. 9. 10.
+        const corrected = koreanMatch[0].replace(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/, '$1. $2. $3.');
         issues.push({
-            id: 'date-format-error-' + match.index,
+            id: 'korean-date-format-' + koreanMatch.index,
             type: 'error',
             title: '잘못된 날짜 표기법',
-            description: '날짜는 온점(.)으로 구분하여 표기해야 합니다.',
-            position: match.index,
-            original: match[0],
+            description: '날짜는 "2025. 9. 10." 형식으로 표기해야 합니다.',
+            position: koreanMatch.index,
+            original: koreanMatch[0],
             suggestion: corrected,
             rule: '공문서 작성 편람 - 날짜 표기법'
         });
     }
 
-    // 2. 오전/오후 표기 검사
+    // 2. 하이픈 날짜 형식 검사
+    const hyphenDatePattern = /\d{4}-\d{1,2}-\d{1,2}/g;
+    let hyphenMatch;
+    while ((hyphenMatch = hyphenDatePattern.exec(text)) !== null) {
+        // 2025-09-10 → 2025. 9. 10.
+        const corrected = hyphenMatch[0].replace(/(\d{4})-(0?)(\d{1,2})-(0?)(\d{1,2})/, '$1. $3. $5.');
+        issues.push({
+            id: 'hyphen-date-format-' + hyphenMatch.index,
+            type: 'error',
+            title: '잘못된 날짜 표기법',
+            description: '날짜는 "2025. 9. 10." 형식으로 표기해야 합니다.',
+            position: hyphenMatch.index,
+            original: hyphenMatch[0],
+            suggestion: corrected,
+            rule: '공문서 작성 편람 - 날짜 표기법'
+        });
+    }
+
+    // 3. 잘못된 온점 날짜 형식 검사 (0이 붙거나 띄어쓰기가 없는 경우)
+    const wrongDotDatePattern = /\d{4}\.(0?\d{1,2})\.(0?\d{1,2})\./g;
+    let dotMatch;
+    while ((dotMatch = wrongDotDatePattern.exec(text)) !== null) {
+        const fullMatch = dotMatch[0];  // 전체 매치 (예: 2025.09.10.)
+        const month = dotMatch[1];      // 월 부분 (예: 09 또는 9)
+        const day = dotMatch[2];        // 일 부분 (예: 10)
+
+        // 올바른 형식인지 확인: 2025. 9. 10. (띄어쓰기 있고, 0이 없음)
+        const correctFormat = /^\d{4}\. \d{1,2}\. \d{1,2}\.$/.test(fullMatch);
+        const hasLeadingZero = /^0\d/.test(month) || /^0\d/.test(day);
+        const hasSpacing = /\d{4}\. \d{1,2}\. \d{1,2}\./.test(fullMatch);
+
+        if (!correctFormat || hasLeadingZero || !hasSpacing) {
+            // 올바른 형식으로 변환
+            const year = fullMatch.substring(0, 4);
+            const cleanMonth = month.replace(/^0+/, '') || '0';  // 앞의 0 제거
+            const cleanDay = day.replace(/^0+/, '') || '0';      // 앞의 0 제거
+            const corrected = `${year}. ${cleanMonth}. ${cleanDay}.`;
+
+            let errorDescription = '';
+            if (hasLeadingZero) {
+                errorDescription = '월과 일이 한자리일 때는 앞에 0을 붙이지 않습니다.';
+            } else if (!hasSpacing) {
+                errorDescription = '온점 뒤에 한 칸 띄어써야 합니다.';
+            } else {
+                errorDescription = '올바른 날짜 형식은 "2025. 9. 10." 입니다.';
+            }
+
+            issues.push({
+                id: 'wrong-dot-date-format-' + dotMatch.index,
+                type: 'error',
+                title: '잘못된 날짜 표기법',
+                description: errorDescription,
+                position: dotMatch.index,
+                original: fullMatch,
+                suggestion: corrected,
+                rule: '공문서 작성 편람 - 날짜 표기법'
+            });
+        }
+    }
+
+    // 4. 오전/오후 표기 검사
     const ampmPattern = /(오전|오후)\s*\d{1,2}시(\s*\d{1,2}분)?/g;
     let ampmMatch;
     while ((ampmMatch = ampmPattern.exec(text)) !== null) {
@@ -525,21 +586,18 @@ function checkDateTimeFormat(text) {
         });
     }
 
-    // 3. "16시 30분" 형식 검사 (새로 추가)
+    // 5. "16시 30분" 형식 검사
     const koreanTimePattern = /\d{1,2}시(\s+\d{1,2}분)?/g;
     let koreanTimeMatch;
     while ((koreanTimeMatch = koreanTimePattern.exec(text)) !== null) {
-        // "몇 시"가 아닌 실제 시간 표기인 경우만 체크
         const timeText = koreanTimeMatch[0];
         const hourMatch = timeText.match(/^(\d{1,2})시/);
 
         if (hourMatch) {
             const hour = parseInt(hourMatch[1]);
-            // 시간 범위가 유효한 경우만 (0-23시)
             if (hour >= 0 && hour <= 23) {
                 let suggestion = '';
 
-                // 분이 있는 경우
                 const minuteMatch = timeText.match(/시\s+(\d{1,2})분/);
                 if (minuteMatch) {
                     const minute = parseInt(minuteMatch[1]);
@@ -655,11 +713,11 @@ function checkSpellingAndSpacing(text) {
     });
 }
 
-// 고급 띄어쓰기 규칙 검사 (새로 추가)
+// 고급 띄어쓰기 규칙 검사
 function checkAdvancedSpacing(text) {
     const issues = [];
 
-    // 1. 단위명사 앞 숫자 띄어쓰기 검사 (보다 포괄적)
+    // 1. 단위명사 앞 숫자 띄어쓰기 검사
     const unitSpacingPattern = /\d\s+(개|부|명|건|회|차|학년|반|조|항|호|번)/g;
     let unitMatch;
     while ((unitMatch = unitSpacingPattern.exec(text)) !== null) {
@@ -697,7 +755,6 @@ function checkAdvancedSpacing(text) {
     const auxiliaryVerbPattern = /(\w)\s+(주다|드리다|보다|있다|없다|같다|싶다|하다)/g;
     let auxMatch;
     while ((auxMatch = auxiliaryVerbPattern.exec(text)) !== null) {
-        // 문맥에 따라 붙여쓸지 띄어쓸지 판단 (간단한 규칙)
         const word = auxMatch[2];
         if (['주다', '드리다', '보다'].includes(word)) {
             const corrected = auxMatch[0].replace(/\s+/, '');
