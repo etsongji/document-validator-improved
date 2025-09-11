@@ -659,10 +659,10 @@ function checkDateTimeFormat(text) {
 function checkAttachmentFormat(text) {
     const issues = [];
 
-    // 1. 붙임 앞 띄어쓰기 검사 - 줄 시작 부분만 검사
-    const lines = text.split('\n');
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
+// 붙임 앞 띄어쓰기 검사
+if (!line.startsWith('붙임') && line.includes('붙임')) {
+  // 앞에 공백이 있을 때만 오류
+}
 
         // 줄 시작에서 공백 후 붙임이 나오는 경우 (잘못된 경우)
         if (/^\s+붙임/.test(line)) {
@@ -832,25 +832,18 @@ function checkPunctuationFormat(text) {
         });
     }
 
-    // 3. 괄호 앞 불필요한 띄어쓰기
-    const bracketSpacePattern = /\s+\(/g;
-    let bracketMatch;
-    while ((bracketMatch = bracketSpacePattern.exec(text)) !== null) {
-        issues.push({
-            id: 'bracket-space-' + bracketMatch.index,
-            type: 'warning',
-            title: '괄호 앞 띄어쓰기 오류',
-            description: '괄호 앞에는 띄어쓰지 않습니다.',
-            position: bracketMatch.index,
-            original: bracketMatch[0] + '(',
-            suggestion: '(',
-            rule: '공문서 작성 편람'
+     // 괄호 앞 띄어쓰기
+text = text.replace(/\s+\(/g, '(');
         });
     }
 
     currentValidationResults.warnings.push(...issues);
 }
-
+// 끝 표시법(중복 방지)
+if (!text.trim().endsWith('.  끝.')) {
+  text = text.replace(/\.\s*끝\.\s*$/, '');
+  text = text.trim() + '.  끝.';
+    
 // 끝 표시법 검사
 function checkEndingFormat(text) {
     const issues = [];
