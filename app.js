@@ -15,8 +15,9 @@ const validationRules = {
     }
 };
 
-// 맞춤법 및 띄어쓰기 오류 목록
+// 맞춤법 및 띄어쓰기 오류 목록 - 대폭 확장
 const commonMistakes = [
+    // 맞춤법 오류들
     { wrong: "워크샵", correct: "워크숍", type: "spelling" },
     { wrong: "레크레이션", correct: "레크리에이션", type: "spelling" },
     { wrong: "리더쉽", correct: "리더십", type: "spelling" },
@@ -25,28 +26,90 @@ const commonMistakes = [
     { wrong: "목표 년도", correct: "목표 연도", type: "spelling" },
     { wrong: "동 건은", correct: "이 건은", type: "spelling" },
     { wrong: "익일", correct: "다음날", type: "spelling" },
-    { wrong: "몇일", correct: "며칠", type: "spacing" },
     { wrong: "제작년", correct: "재작년", type: "spelling" },
+    { wrong: "몇일", correct: "며칠", type: "spelling" },
+    { wrong: "몇 일", correct: "며칠", type: "spelling" },
+    { wrong: "며칠 동안", correct: "며칠간", type: "spelling" },
+
+    // 조사/어미 띄어쓰기 오류들
     { wrong: "계획인 바", correct: "계획인바", type: "spacing" },
+    { wrong: "요청한 바", correct: "요청한바", type: "spacing" },
+    { wrong: "알려진 바", correct: "알려진바", type: "spacing" },
+    { wrong: "승인한 바", correct: "승인한바", type: "spacing" },
+    { wrong: "검토한 바", correct: "검토한바", type: "spacing" },
+
+    // 서술어 띄어쓰기 오류들
     { wrong: "문서 입니다", correct: "문서입니다", type: "spacing" },
+    { wrong: "요청 드립니다", correct: "요청드립니다", type: "spacing" },
+    { wrong: "협조 바랍니다", correct: "협조바랍니다", type: "spacing" },
+    { wrong: "검토 하시기", correct: "검토하시기", type: "spacing" },
+    { wrong: "참고 하시기", correct: "참고하시기", type: "spacing" },
+    { wrong: "회신 하여", correct: "회신하여", type: "spacing" },
+
+    // 접두사 띄어쓰기 오류들
+    { wrong: "재 교육", correct: "재교육", type: "spacing" },
+    { wrong: "재 검토", correct: "재검토", type: "spacing" },
+    { wrong: "재 승인", correct: "재승인", type: "spacing" },
+    { wrong: "신 설치", correct: "신설치", type: "spacing" },
+    { wrong: "신 규모", correct: "신규모", type: "spacing" },
+    { wrong: "구 버전", correct: "구버전", type: "spacing" },
+
+    // 연결부사 띄어쓰기 오류들
     { wrong: "또 한", correct: "또한", type: "spacing" },
+    { wrong: "그러므 로", correct: "그러므로", type: "spacing" },
+    { wrong: "따라 서", correct: "따라서", type: "spacing" },
+    { wrong: "그런 데", correct: "그런데", type: "spacing" },
+
+    // 시간 관련 띄어쓰기 오류들
     { wrong: "계약시", correct: "계약 시", type: "spacing" },
+    { wrong: "승인시", correct: "승인 시", type: "spacing" },
+    { wrong: "완료시", correct: "완료 시", type: "spacing" },
+    { wrong: "제출시", correct: "제출 시", type: "spacing" },
     { wrong: "승인후", correct: "승인 후", type: "spacing" },
+    { wrong: "완료후", correct: "완료 후", type: "spacing" },
+    { wrong: "검토후", correct: "검토 후", type: "spacing" },
+    { wrong: "논의후", correct: "논의 후", type: "spacing" },
     { wrong: "기한내", correct: "기한 내", type: "spacing" },
-    { wrong: "개시 할", correct: "개시할", type: "spacing" }
+    { wrong: "범위내", correct: "범위 내", type: "spacing" },
+
+    // 동작 관련 띄어쓰기 오류들
+    { wrong: "개시 할", correct: "개시할", type: "spacing" },
+    { wrong: "진행 할", correct: "진행할", type: "spacing" },
+    { wrong: "실시 할", correct: "실시할", type: "spacing" },
+    { wrong: "시행 할", correct: "시행할", type: "spacing" },
+    { wrong: "추진 할", correct: "추진할", type: "spacing" },
+
+    // 조 관련 띄어쓰기 오류들
+    { wrong: "제 1조", correct: "제1조", type: "spacing" },
+    { wrong: "제 2조", correct: "제2조", type: "spacing" },
+    { wrong: "제 3조", correct: "제3조", type: "spacing" },
+    { wrong: "1 조", correct: "제1조", type: "spacing" },
+    { wrong: "2 조", correct: "제2조", type: "spacing" },
+    { wrong: "1조", correct: "제1조", type: "spacing" },
+    { wrong: "2조", correct: "제2조", type: "spacing" },
+
+    // 공문서 특수 표현 띄어쓰기 오류들
+    { wrong: "위 호와관련", correct: "위 호와 관련", type: "spacing" },
+    { wrong: "관련 하여", correct: "관련하여", type: "spacing" },
+    { wrong: "대하 여", correct: "대하여", type: "spacing" },
+    { wrong: "의하 여", correct: "의하여", type: "spacing" },
+    { wrong: "따르 어", correct: "따라", type: "spacing" },
+
+    // 단위/숫자 띄어쓰기 오류들
+    { wrong: "1 개", correct: "1개", type: "spacing" },
+    { wrong: "2 개", correct: "2개", type: "spacing" },
+    { wrong: "1 부", correct: "1부", type: "spacing" },
+    { wrong: "2 부", correct: "2부", type: "spacing" },
+    { wrong: "1 명", correct: "1명", type: "spacing" },
+    { wrong: "2 명", correct: "2명", type: "spacing" }
 ];
 
-// 용어 순화 제안
-const terminologyRefinement = [
-    { difficult: "시행", easy: "실시" },
-    { difficult: "제출", easy: "내기" },
-    { difficult: "검토", easy: "살펴보기" },
-    { difficult: "협조", easy: "도움" },
-    { difficult: "승인", easy: "허가" },
-    { difficult: "통보", easy: "알림" },
-    { difficult: "이행", easy: "실행" },
-    { difficult: "준수", easy: "지키기" },
-    { difficult: "활용", easy: "이용" }
+// 항목 기호 순서 정의
+const itemHierarchy = [
+    { pattern: /^\s*\d+\./gm, level: 1, name: "1." },      // 1. 2. 3.
+    { pattern: /^\s*[가-힣]\./gm, level: 2, name: "가." },   // 가. 나. 다.
+    { pattern: /^\s*\d+\)/gm, level: 3, name: "1)" },     // 1) 2) 3)
+    { pattern: /^\s*[가-힣]\)/gm, level: 4, name: "가)" }   // 가) 나) 다)
 ];
 
 // 예시 문서
@@ -227,11 +290,10 @@ async function performValidation(text) {
     };
 
     const steps = [
-        { name: '문서 구조 분석', progress: 15, fn: () => checkDocumentStructure(text) },
-        { name: '날짜/시간 표기법 검사', progress: 30, fn: () => checkDateTimeFormat(text) },
-        { name: '맞춤법 및 띄어쓰기 검사', progress: 50, fn: () => checkSpellingAndSpacing(text) },
-        { name: '끝 표시법 검사', progress: 70, fn: () => checkEndingFormat(text) },
-        { name: '용어 순화 검사', progress: 85, fn: () => checkTerminology(text) },
+        { name: '문서 구조 및 항목 기호 검사', progress: 20, fn: () => checkDocumentStructure(text) },
+        { name: '날짜/시간 표기법 검사', progress: 40, fn: () => checkDateTimeFormat(text) },
+        { name: '맞춤법 및 띄어쓰기 검사', progress: 70, fn: () => checkSpellingAndSpacing(text) },
+        { name: '끝 표시법 검사', progress: 90, fn: () => checkEndingFormat(text) },
         { name: '종합 검토', progress: 100, fn: () => generateCorrectedText() }
     ];
 
@@ -257,30 +319,112 @@ function updateProgress(progress, text) {
     }
 }
 
-// 문서 구조 검사
+// 문서 구조 및 항목 기호 검사 - 대폭 강화
 function checkDocumentStructure(text) {
     const issues = [];
 
-    // 항목 기호 검사 - 더 정확한 패턴 매칭
-    const itemPattern = /\b\d+\)(?=\s)/g;
+    // 1. 잘못된 항목 기호 형식 검사 (1) -> 1.)
+    const wrongItemPattern = /^\s*\d+\)\s/gm;
     let match;
-    while ((match = itemPattern.exec(text)) !== null) {
+    while ((match = wrongItemPattern.exec(text)) !== null) {
         issues.push({
-            id: 'item-symbol-' + match.index,
-            type: 'warning',
+            id: 'wrong-item-symbol-' + match.index,
+            type: 'error',
             title: '잘못된 항목 기호',
-            description: '항목 기호는 1. → 가. → 1) → 가) 순서로 사용해야 합니다.',
+            description: '1단계 항목은 "1."로 표기해야 하며, "1)"은 3단계에서 사용합니다.',
             position: match.index,
-            original: match[0],
+            original: match[0].trim(),
             suggestion: match[0].replace(')', '.'),
+            rule: '공문서 작성 편람 - 항목 표시법'
+        });
+    }
+
+    // 2. 항목 기호 뒤 띄어쓰기 검사
+    const noSpaceAfterItemPattern = /^\s*(\d+\.|[가-힣]\.|\d+\)|[가-힣]\))[^\s]/gm;
+    let spaceMatch;
+    while ((spaceMatch = noSpaceAfterItemPattern.exec(text)) !== null) {
+        issues.push({
+            id: 'item-no-space-' + spaceMatch.index,
+            type: 'error',
+            title: '항목 기호 띄어쓰기 오류',
+            description: '항목 기호 뒤에 한 칸 띄어써야 합니다.',
+            position: spaceMatch.index,
+            original: spaceMatch[1],
+            suggestion: spaceMatch[1] + ' ',
+            rule: '공문서 작성 편람 - 항목 표시법'
+        });
+    }
+
+    // 3. 항목 기호 순서 검사
+    const lines = text.split('\n');
+    let currentLevel = 0;
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+
+        // 각 레벨의 항목 기호 확인
+        for (let j = 0; j < itemHierarchy.length; j++) {
+            const hierarchy = itemHierarchy[j];
+            if (hierarchy.pattern.test(line)) {
+                const expectedLevel = j + 1;
+
+                // 순서가 맞지 않는 경우 (2단계 이상 건너뛰는 경우)
+                if (expectedLevel > currentLevel + 1) {
+                    issues.push({
+                        id: 'item-hierarchy-skip-' + i,
+                        type: 'warning',
+                        title: '항목 기호 순서 오류',
+                        description: `항목 기호는 순차적으로 사용해야 합니다. ${hierarchy.name} 앞에 중간 단계가 누락되었습니다.`,
+                        position: text.indexOf(line),
+                        original: line.split(' ')[0],
+                        suggestion: '순차적 항목 기호 사용',
+                        rule: '공문서 작성 편람 - 항목 표시법'
+                    });
+                }
+
+                currentLevel = expectedLevel;
+                break;
+            }
+        }
+    }
+
+    // 4. 쌍점(:) 뒤 띄어쓰기 검사
+    const colonPattern = /([^\s]):([^\s])/g;
+    let colonMatch;
+    while ((colonMatch = colonPattern.exec(text)) !== null) {
+        issues.push({
+            id: 'colon-spacing-' + colonMatch.index,
+            type: 'warning',
+            title: '쌍점 띄어쓰기 오류',
+            description: '쌍점(:) 뒤에 한 칸 띄어써야 합니다.',
+            position: colonMatch.index,
+            original: colonMatch[0],
+            suggestion: colonMatch[1] + ': ' + colonMatch[2],
             rule: '공문서 작성 편람'
         });
     }
 
-    currentValidationResults.warnings.push(...issues);
+    // 5. 쌍점(:) 앞 띄어쓰기 검사 (불필요한 경우)
+    const colonBeforePattern = /\s+:/g;
+    let colonBeforeMatch;
+    while ((colonBeforeMatch = colonBeforePattern.exec(text)) !== null) {
+        issues.push({
+            id: 'colon-before-spacing-' + colonBeforeMatch.index,
+            type: 'warning',
+            title: '쌍점 앞 띄어쓰기 오류',
+            description: '쌍점(:) 앞에는 띄어쓰지 않습니다.',
+            position: colonBeforeMatch.index,
+            original: colonBeforeMatch[0] + ':',
+            suggestion: ':',
+            rule: '공문서 작성 편람'
+        });
+    }
+
+    currentValidationResults.errors.push(...issues.filter(i => i.type === 'error'));
+    currentValidationResults.warnings.push(...issues.filter(i => i.type === 'warning'));
 }
 
-// 날짜/시간 표기법 검사 - 수정된 로직
+// 날짜/시간 표기법 검사
 function checkDateTimeFormat(text) {
     const issues = [];
 
@@ -318,7 +462,7 @@ function checkDateTimeFormat(text) {
         });
     }
 
-    // 올바르지 않은 시간 형식만 검사 (개선된 로직)
+    // 올바르지 않은 시간 형식만 검사
     // 1. 오전/오후 표기 검사
     const ampmPattern = /(오전|오후)\s*\d{1,2}시(\s*\d{1,2}분)?/g;
     let ampmMatch;
@@ -376,21 +520,83 @@ function checkDateTimeFormat(text) {
     currentValidationResults.warnings.push(...issues.filter(i => i.type === 'warning'));
 }
 
-// 맞춤법 및 띄어쓰기 검사
+// 맞춤법 및 띄어쓰기 검사 - 대폭 강화
 function checkSpellingAndSpacing(text) {
     const issues = [];
 
     commonMistakes.forEach((mistake, index) => {
         if (text.includes(mistake.wrong)) {
+            // 정확한 위치 찾기
+            let position = 0;
+            let searchText = text;
+
+            while (true) {
+                const foundIndex = searchText.indexOf(mistake.wrong);
+                if (foundIndex === -1) break;
+
+                position += foundIndex;
+
+                issues.push({
+                    id: `mistake-${mistake.type}-${index}-${position}`,
+                    type: mistake.type === 'spelling' ? 'error' : 'warning',
+                    title: mistake.type === 'spelling' ? '맞춤법 오류' : '띄어쓰기 오류',
+                    description: `"${mistake.wrong}"는 "${mistake.correct}"로 수정해야 합니다.`,
+                    position: position,
+                    original: mistake.wrong,
+                    suggestion: mistake.correct,
+                    rule: mistake.type === 'spelling' ? '한글 맞춤법 규정' : '한글 띄어쓰기 규정'
+                });
+
+                // 다음 검색을 위해 텍스트 업데이트
+                position += mistake.wrong.length;
+                searchText = text.substring(position);
+            }
+        }
+    });
+
+    // 추가 띄어쓰기 검사 패턴들
+    const additionalSpacingPatterns = [
+        // 숫자와 단위 사이 불필요한 띄어쓰기
+        { pattern: /\d+\s+(개|부|명|건|회|차|번|점|대|장|권|편)/g, 
+          type: 'warning', 
+          message: '숫자와 단위 사이는 띄어쓰지 않습니다.' },
+
+        // 쉼표 뒤 띄어쓰기 누락
+        { pattern: /,([^\s\d])/g, 
+          type: 'warning', 
+          message: '쉼표(,) 뒤에 한 칸 띄어써야 합니다.' },
+
+        // 괄호 앞 불필요한 띄어쓰기
+        { pattern: /\s+\(/g, 
+          type: 'warning', 
+          message: '괄호 앞에는 띄어쓰지 않습니다.' }
+    ];
+
+    additionalSpacingPatterns.forEach((patternObj, index) => {
+        let match;
+        while ((match = patternObj.pattern.exec(text)) !== null) {
+            let suggestion = '';
+
+            if (patternObj.pattern.source.includes('\\d+\\s+')) {
+                // 숫자와 단위 사이 공백 제거
+                suggestion = match[0].replace(/\s+/, '');
+            } else if (patternObj.pattern.source.includes(',')) {
+                // 쉼표 뒤 공백 추가
+                suggestion = ', ' + match[1];
+            } else if (patternObj.pattern.source.includes('\\(')) {
+                // 괄호 앞 공백 제거
+                suggestion = '(';
+            }
+
             issues.push({
-                id: 'mistake-' + index,
-                type: mistake.type === 'spelling' ? 'error' : 'warning',
-                title: mistake.type === 'spelling' ? '맞춤법 오류' : '띄어쓰기 오류',
-                description: `"${mistake.wrong}"는 "${mistake.correct}"로 수정해야 합니다.`,
-                position: text.indexOf(mistake.wrong),
-                original: mistake.wrong,
-                suggestion: mistake.correct,
-                rule: '한글 맞춤법 규정'
+                id: `additional-spacing-${index}-${match.index}`,
+                type: patternObj.type,
+                title: '띄어쓰기 오류',
+                description: patternObj.message,
+                position: match.index,
+                original: match[0],
+                suggestion: suggestion,
+                rule: '한글 띄어쓰기 규정'
             });
         }
     });
@@ -523,28 +729,6 @@ function checkEndingFormat(text) {
     currentValidationResults.errors.push(...issues);
 }
 
-// 용어 순화 검사
-function checkTerminology(text) {
-    const suggestions = [];
-
-    terminologyRefinement.forEach((term, index) => {
-        if (text.includes(term.difficult)) {
-            suggestions.push({
-                id: 'terminology-' + index,
-                type: 'suggestion',
-                title: '용어 순화 제안',
-                description: `"${term.difficult}"을 "${term.easy}"로 바꾸면 더 쉽게 이해할 수 있습니다.`,
-                position: text.indexOf(term.difficult),
-                original: term.difficult,
-                suggestion: term.easy,
-                rule: '쉬운 공문서 작성 가이드'
-            });
-        }
-    });
-
-    currentValidationResults.suggestions.push(...suggestions);
-}
-
 // 교정된 텍스트 생성
 function generateCorrectedText() {
     let corrected = currentValidationResults.originalText;
@@ -555,9 +739,12 @@ function generateCorrectedText() {
         ...currentValidationResults.warnings
     ];
 
-    // 간단한 교정 적용
+    // 위치 기준 역순으로 정렬 (뒤에서부터 교정하여 위치 변화 방지)
+    allIssues.sort((a, b) => b.position - a.position);
+
     allIssues.forEach(issue => {
-        if (issue.original && issue.suggestion && issue.original !== '없음' && issue.original !== '현재 형식') {
+        if (issue.original && issue.suggestion && 
+            issue.original !== '없음' && issue.original !== '현재 형식') {
             corrected = corrected.replace(issue.original, issue.suggestion);
         }
     });
