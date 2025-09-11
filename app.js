@@ -64,7 +64,7 @@ const sampleDocument = `수신 ○○○기관장
 
 2. 협조기한: 2024. 12. 31.(화)까지
 
-붙임 관련 서류 1부. 끝.`;
+붙임 관련 서류 1부.  끝.`;
 
 // 전역 상태
 let currentValidationResults = {
@@ -261,8 +261,8 @@ function updateProgress(progress, text) {
 function checkDocumentStructure(text) {
     const issues = [];
 
-    // 항목 기호 검사
-    const itemPattern = /\d+\)/g;
+    // 항목 기호 검사 - 더 정확한 패턴 매칭
+    const itemPattern = /\b\d+\)(?=\s)/g;
     let match;
     while ((match = itemPattern.exec(text)) !== null) {
         issues.push({
@@ -280,53 +280,100 @@ function checkDocumentStructure(text) {
     currentValidationResults.warnings.push(...issues);
 }
 
-// 날짜/시간 표기법 검사
+// 날짜/시간 표기법 검사 - 수정된 로직
 function checkDateTimeFormat(text) {
     const issues = [];
 
-    // 년월일 형식 검사
-    if (text.includes('년') && text.includes('월') && text.includes('일')) {
+    // 잘못된 날짜 형식 검사 (년월일 표기만)
+    const wrongDatePattern = /\d{4}년\s*\d{1,2}월\s*\d{1,2}일/g;
+    let dateMatch;
+    while ((dateMatch = wrongDatePattern.exec(text)) !== null) {
+        const corrected = dateMatch[0].replace(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/, '$1. $2. $3.');
         issues.push({
-            id: 'date-format-error',
+            id: 'date-format-error-' + dateMatch.index,
             type: 'error',
             title: '잘못된 날짜 표기법',
             description: '날짜는 온점(.)으로 구분하여 표기해야 합니다.',
-            position: 0,
-            original: '년월일 표기',
-            suggestion: '2024. 8. 1.(목) 형식',
+            position: dateMatch.index,
+            original: dateMatch[0],
+            suggestion: corrected,
             rule: '공문서 작성 편람 - 날짜 표기법'
         });
     }
 
     // 하이픈 날짜 형식 검사
-    if (text.includes('-') && /\d{4}-\d{1,2}-\d{1,2}/.test(text)) {
+    const hyphenDatePattern = /\d{4}-\d{1,2}-\d{1,2}/g;
+    let hyphenMatch;
+    while ((hyphenMatch = hyphenDatePattern.exec(text)) !== null) {
+        const corrected = hyphenMatch[0].replace(/(\d{4})-(\d{1,2})-(\d{1,2})/, '$1. $2. $3.');
         issues.push({
-            id: 'hyphen-date-error',
+            id: 'hyphen-date-error-' + hyphenMatch.index,
             type: 'error',
             title: '잘못된 날짜 표기법',
             description: '날짜는 하이픈(-) 대신 온점(.)으로 구분해야 합니다.',
-            position: 0,
-            original: '하이픈 날짜',
-            suggestion: '온점 날짜',
+            position: hyphenMatch.index,
+            original: hyphenMatch[0],
+            suggestion: corrected,
             rule: '공문서 작성 편람'
         });
     }
 
-    // 시간 형식 검사
-    if (text.includes('시') || text.includes('분')) {
+    // 올바르지 않은 시간 형식만 검사 (개선된 로직)
+    // 1. 오전/오후 표기 검사
+    const ampmPattern = /(오전|오후)\s*\d{1,2}시(\s*\d{1,2}분)?/g;
+    let ampmMatch;
+    while ((ampmMatch = ampmPattern.exec(text)) !== null) {
         issues.push({
-            id: 'time-format-error',
+            id: 'ampm-time-error-' + ampmMatch.index,
             type: 'error',
             title: '잘못된 시간 표기법',
             description: '24시각제를 사용하여 00:00 형식으로 표기해야 합니다.',
-            position: 0,
-            original: '시분 표기',
-            suggestion: '14:30 형식',
+            position: ampmMatch.index,
+            original: ampmMatch[0],
+            suggestion: '24시각제 형식 (예: 14:30)',
             rule: '공문서 작성 편람'
         });
     }
 
-    currentValidationResults.errors.push(...issues);
+    // 2. 시분 단위 표기 검사 (단독으로 사용된 경우만)
+    const timeUnitPattern = /\b\d{1,2}시\s*\d{1,2}분\b/g;
+    let timeUnitMatch;
+    while ((timeUnitMatch = timeUnitPattern.exec(text)) !== null) {
+        // 오전/오후가 앞에 없는 경우만 체크
+        const beforeText = text.substring(Math.max(0, timeUnitMatch.index - 10), timeUnitMatch.index);
+        if (!beforeText.includes('오전') && !beforeText.includes('오후')) {
+            issues.push({
+                id: 'time-unit-error-' + timeUnitMatch.index,
+                type: 'warning',
+                title: '시간 표기법 개선 제안',
+                description: '시간은 00:00 형식으로 표기하는 것이 좋습니다.',
+                position: timeUnitMatch.index,
+                original: timeUnitMatch[0],
+                suggestion: '00:00 형식',
+                rule: '공문서 작성 편람'
+            });
+        }
+    }
+
+    // 3. 한 자리 시간 검사 (예: 9:00 → 09:00)
+    const singleDigitTimePattern = /\b\d{1}:\d{2}\b/g;
+    let singleDigitMatch;
+    while ((singleDigitMatch = singleDigitTimePattern.exec(text)) !== null) {
+        const corrected = '0' + singleDigitMatch[0];
+        issues.push({
+            id: 'single-digit-time-' + singleDigitMatch.index,
+            type: 'warning',
+            title: '시간 표기법 개선',
+            description: '시간은 두 자리로 표기하는 것이 좋습니다.',
+            position: singleDigitMatch.index,
+            original: singleDigitMatch[0],
+            suggestion: corrected,
+            rule: '공문서 작성 편람'
+        });
+    }
+
+    currentValidationResults.errors.push(...issues.filter(i => i.type === 'error'));
+    currentValidationResults.warnings.push(...issues.filter(i => i.type === 'warning'));
 }
 
 // 맞춤법 및 띄어쓰기 검사
@@ -358,20 +405,118 @@ function checkSpellingAndSpacing(text) {
     });
 }
 
-// 끝 표시법 검사
+// 끝 표시법 검사 - 매우 엄격한 규칙 적용
 function checkEndingFormat(text) {
     const issues = [];
+    const trimmedText = text.trim();
 
-    if (!text.trim().endsWith('끝.')) {
+    // 1. 끝 표시가 아예 없는 경우
+    if (!trimmedText.includes('끝.')) {
         issues.push({
             id: 'ending-missing',
             type: 'error',
-            title: '끝 표시법 오류',
-            description: '본문 마지막에 "끝."을 표시해야 합니다.',
+            title: '끝 표시법 누락',
+            description: '본문 마지막에 "마침표 + 2칸 띄어쓰기 + 끝."을 표시해야 합니다.',
             position: text.length,
             original: '없음',
-            suggestion: ' 끝.',
-            rule: '공문서 작성 편람'
+            suggestion: '.  끝.',
+            rule: '공문서 작성 편람 - 끝 표시법'
+        });
+        currentValidationResults.errors.push(...issues);
+        return;
+    }
+
+    // 2. 올바른 형식: ".  끝." (마침표 + 2칸 띄어쓰기 + 끝.)
+    if (trimmedText.endsWith('.  끝.')) {
+        // 올바른 형식이면 검사 통과
+        return;
+    }
+
+    // 3. 다양한 잘못된 형식들 검사
+    let errorFound = false;
+
+    // 마침표 없이 끝나는 경우
+    if (trimmedText.match(/[^.]\s*끝\.$/)) {
+        issues.push({
+            id: 'ending-no-period',
+            type: 'error',
+            title: '끝 표시법 오류',
+            description: '끝 표시 앞에 마침표가 필요합니다.',
+            position: trimmedText.lastIndexOf('끝.'),
+            original: '현재 형식',
+            suggestion: '.  끝.',
+            rule: '공문서 작성 편람 - 끝 표시법'
+        });
+        errorFound = true;
+    }
+    // 띄어쓰기 없이 .끝.
+    else if (trimmedText.endsWith('.끝.')) {
+        issues.push({
+            id: 'ending-no-space',
+            type: 'error',
+            title: '끝 표시법 오류',
+            description: '마침표 다음에 2칸 띄어쓰기가 필요합니다.',
+            position: trimmedText.lastIndexOf('.끝.'),
+            original: '.끝.',
+            suggestion: '.  끝.',
+            rule: '공문서 작성 편람 - 끝 표시법'
+        });
+        errorFound = true;
+    }
+    // 1칸 띄어쓰기 . 끝.
+    else if (trimmedText.endsWith('. 끝.')) {
+        issues.push({
+            id: 'ending-one-space',
+            type: 'error',
+            title: '끝 표시법 오류',
+            description: '마침표 다음에 정확히 2칸 띄어쓰기해야 합니다.',
+            position: trimmedText.lastIndexOf('. 끝.'),
+            original: '. 끝.',
+            suggestion: '.  끝.',
+            rule: '공문서 작성 편람 - 끝 표시법'
+        });
+        errorFound = true;
+    }
+    // 3칸 이상 띄어쓰기
+    else if (trimmedText.match(/\.\s{3,}끝\.$/)) {
+        issues.push({
+            id: 'ending-too-many-spaces',
+            type: 'error',
+            title: '끝 표시법 오류',
+            description: '마침표 다음에 정확히 2칸만 띄어쓰기해야 합니다.',
+            position: trimmedText.search(/\.\s{3,}끝\.$/),
+            original: '현재 형식',
+            suggestion: '.  끝.',
+            rule: '공문서 작성 편람 - 끝 표시법'
+        });
+        errorFound = true;
+    }
+    // 끝 뒤에 마침표 없음 ".  끝"
+    else if (trimmedText.match(/\.\s\s끝$/)) {
+        issues.push({
+            id: 'ending-no-final-period',
+            type: 'error',
+            title: '끝 표시법 오류',
+            description: '"끝" 뒤에 마침표가 필요합니다.',
+            position: trimmedText.lastIndexOf('끝'),
+            original: '끝',
+            suggestion: '끝.',
+            rule: '공문서 작성 편람 - 끝 표시법'
+        });
+        errorFound = true;
+    }
+
+    // 일반적인 끝 표시 오류 (위의 패턴에 맞지 않는 경우)
+    if (!errorFound && trimmedText.includes('끝.')) {
+        issues.push({
+            id: 'ending-format-general',
+            type: 'error',
+            title: '끝 표시법 오류',
+            description: '올바른 형식: "마침표 + 2칸 띄어쓰기 + 끝." 순서로 표기해야 합니다.',
+            position: trimmedText.lastIndexOf('끝.'),
+            original: '현재 형식',
+            suggestion: '.  끝.',
+            rule: '공문서 작성 편람 - 끝 표시법'
         });
     }
 
@@ -412,14 +557,16 @@ function generateCorrectedText() {
 
     // 간단한 교정 적용
     allIssues.forEach(issue => {
-        if (issue.original && issue.suggestion && issue.original !== '없음') {
-            corrected = corrected.replaceAll(issue.original, issue.suggestion);
+        if (issue.original && issue.suggestion && issue.original !== '없음' && issue.original !== '현재 형식') {
+            corrected = corrected.replace(issue.original, issue.suggestion);
         }
     });
 
-    // 끝 표시 추가
-    if (!corrected.trim().endsWith('끝.')) {
-        corrected = corrected.trim() + ' 끝.';
+    // 끝 표시 추가/수정
+    if (!corrected.trim().endsWith('.  끝.')) {
+        // 기존 끝 표시 제거 후 올바른 형식으로 추가
+        corrected = corrected.replace(/\.?\s*끝\.?\s*$/, '');
+        corrected = corrected.trim() + '.  끝.';
     }
 
     currentValidationResults.correctedText = corrected;
@@ -556,7 +703,7 @@ function createIssueHTML(issue) {
                 </div>
             </div>
             <p class="issue-description">${issue.description}</p>
-            ${issue.original && issue.suggestion ? `
+            ${issue.original && issue.suggestion && issue.original !== '없음' && issue.original !== '현재 형식' ? `
                 <div class="issue-correction">
                     <span class="correction-wrong">${escapeHtml(issue.original)}</span>
                     <span class="correction-arrow">→</span>
@@ -662,10 +809,21 @@ function applySingleCorrection(issueId) {
     if (!issue || !elements.documentInput) return;
 
     let currentText = elements.documentInput.value;
-    currentText = currentText.replace(issue.original, issue.suggestion);
-    elements.documentInput.value = currentText;
 
-    showMessage(`"${issue.original}"을 "${issue.suggestion}"로 수정했습니다.`, 'success');
+    // 끝 표시법 수정의 경우 특별 처리
+    if (issue.id.includes('ending')) {
+        if (issue.id === 'ending-missing') {
+            currentText = currentText.trim() + '.  끝.';
+        } else {
+            // 기존 잘못된 끝 표시 제거 후 올바른 형식 추가
+            currentText = currentText.replace(/\.?\s*끝\.?\s*$/, '').trim() + '.  끝.';
+        }
+    } else if (issue.original && issue.suggestion) {
+        currentText = currentText.replace(issue.original, issue.suggestion);
+    }
+
+    elements.documentInput.value = currentText;
+    showMessage('수정사항이 적용되었습니다.', 'success');
     updateCharCount();
 }
 
