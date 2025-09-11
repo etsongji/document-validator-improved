@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>공문서 검증 및 교정 프로그램</title>
+    <title>공문서 초안 검증 도구</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -11,8 +11,8 @@
         <!-- Header -->
         <header class="header">
             <div class="container">
-                <h1 class="header__title">공문서 검증 및 교정 프로그램</h1>
-                <p class="header__subtitle">한국 공문서 작성법에 근거한 전문적인 검증 시스템</p>
+                <h1 class="header__title">공문서 초안 입력</h1>
+                <p class="header__subtitle">공문서 작성 규정에 따른 자동 검증 및 교정</p>
             </div>
         </header>
 
@@ -20,8 +20,8 @@
         <main class="main">
             <div class="container">
                 <div class="validation-layout">
-                    <!-- 입력 영역 -->
-                    <section class="input-section">
+                    <!-- Input Section -->
+                    <div class="input-section">
                         <div class="card">
                             <div class="card__header">
                                 <h2>공문서 초안 입력</h2>
@@ -31,130 +31,142 @@
                             </div>
                             <div class="card__body">
                                 <div class="form-group">
-                                    <label class="form-label">문서 유형 선택</label>
+                                    <label for="documentType" class="form-label">문서 유형 선택</label>
                                     <select id="documentType" class="form-control">
                                         <option value="external">대외문서 (기관 간 발송)</option>
                                         <option value="internal">내부결재 문서</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
-                                    <label for="documentInput" class="form-label sr-only">공문서 초안 입력</label>
+                                    <label for="documentInput" class="form-label">공문서 초안 입력</label>
                                     <textarea 
                                         id="documentInput" 
-                                        class="form-control document-input"
-                                        placeholder="검증할 공문서 초안을 이곳에 붙여넣거나 직접 입력하세요...&#10;&#10;예시:&#10;수신 ○○○기관장&#10;&#10;제목 2024년도 업무협조 요청&#10;&#10;○○○○와 관련하여 다음과 같이 협조를 요청드리오니..."
+                                        class="form-control document-input" 
+                                        placeholder="공문서 초안을 입력하세요..."
                                         maxlength="10000"
-                                        rows="25"></textarea>
+                                    ></textarea>
                                 </div>
                                 <div class="action-buttons">
-                                    <button type="button" class="btn btn--primary btn--lg" id="validateBtn">
+                                    <button id="validateBtn" class="btn btn--primary btn--lg">
                                         🔍 검증 시작
                                     </button>
-                                    <button type="button" class="btn btn--secondary" id="clearBtn">
+                                    <button id="clearBtn" class="btn btn--secondary btn--lg">
                                         🗑️ 초기화
                                     </button>
-                                    <button type="button" class="btn btn--outline" id="sampleBtn">
+                                    <button id="sampleBtn" class="btn btn--outline btn--lg">
                                         📄 예시 공문
                                     </button>
                                 </div>
                             </div>
                         </div>
-                    </section>
+                    </div>
 
-                    <!-- 결과 영역 -->
-                    <section class="results-section">
+                    <!-- Results Section -->
+                    <div class="results-section">
                         <div class="card">
                             <div class="card__header">
                                 <h2>검증 결과</h2>
-                                <div class="validation-summary" id="validationSummary">
-                                    검증을 시작하려면 좌측에 공문서를 입력하고 '검증 시작' 버튼을 클릭하세요.
-                                </div>
                             </div>
                             <div class="card__body">
-                                <!-- 검증 진행 상황 -->
-                                <div class="validation-progress hidden" id="validationProgress">
+                                <!-- Validation Summary -->
+                                <div id="validationSummary" class="validation-summary">
+                                    검증을 시작하려면 좌측에 공문서를 입력하고 '검증 시작' 버튼을 클릭하세요.
+                                </div>
+
+                                <!-- Validation Progress -->
+                                <div id="validationProgress" class="validation-progress hidden">
                                     <div class="progress-bar">
-                                        <div class="progress-fill" id="progressFill"></div>
+                                        <div id="progressFill" class="progress-fill"></div>
                                     </div>
-                                    <div class="progress-text" id="progressText">검증 중...</div>
+                                    <div id="progressText" class="progress-text">검증 중...</div>
                                 </div>
 
-                                <!-- 검증 결과 탭 -->
-                                <div class="results-tabs" id="resultsTabs">
-                                    <button class="tab-btn tab-btn--active" data-tab="overview">전체 요약</button>
-                                    <button class="tab-btn" data-tab="errors">🔴 중요 오류</button>
-                                    <button class="tab-btn" data-tab="warnings">🟡 주의 사항</button>
-                                    <button class="tab-btn" data-tab="suggestions">🔵 제안 사항</button>
+                                <!-- Summary Stats -->
+                                <div id="summaryStats" class="summary-stats hidden">
+                                    <div class="stat-item">
+                                        <div id="errorCount" class="stat-number error">0</div>
+                                        <div class="stat-label">🔴 중요 오류</div>
+                                    </div>
+                                    <div class="stat-item">
+                                        <div id="warningCount" class="stat-number warning">0</div>
+                                        <div class="stat-label">🟡 주의 사항</div>
+                                    </div>
+                                    <div class="stat-item">
+                                        <div id="suggestionCount" class="stat-number info">0</div>
+                                        <div class="stat-label">🔵 제안 사항</div>
+                                    </div>
                                 </div>
 
-                                <!-- 검증 결과 내용 -->
-                                <div class="results-content" id="resultsContent">
+                                <!-- Results Tabs -->
+                                <div id="resultsTabs" class="results-tabs hidden">
+                                    <button class="tab-btn tab-btn--active" data-tab="all">전체</button>
+                                    <button class="tab-btn" data-tab="errors">오류</button>
+                                    <button class="tab-btn" data-tab="warnings">주의사항</button>
+                                    <button class="tab-btn" data-tab="suggestions">제안사항</button>
+                                </div>
+
+                                <!-- Results Content -->
+                                <div id="resultsContent" class="results-content">
                                     <div class="results-placeholder">
-                                        <div class="placeholder-icon">📝</div>
+                                        <div class="placeholder-icon">🔍</div>
                                         <h3>검증 대기 중</h3>
                                         <p>공문서를 입력하고 검증을 시작해주세요.</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
 
-                        <!-- 교정된 공문서 미리보기 -->
-                        <div class="card preview-card hidden" id="correctedPreview">
-                            <div class="card__header">
-                                <h3>교정된 공문서 미리보기</h3>
-                                <div class="preview-actions">
-                                    <button class="btn btn--primary btn--sm" id="copyBtn">📋 복사</button>
-                                    <button class="btn btn--secondary btn--sm" id="downloadBtn">💾 다운로드</button>
-                                </div>
-                            </div>
-                            <div class="card__body">
-                                <div class="corrected-document" id="correctedDocument">
-                                    <!-- 교정된 문서가 여기에 표시됩니다 -->
-                                </div>
-                            </div>
+                <!-- Corrected Preview -->
+                <div id="correctedPreview" class="preview-card card hidden">
+                    <div class="card__header">
+                        <h2>교정된 공문서 미리보기</h2>
+                        <div class="preview-actions">
+                            <button id="copyBtn" class="btn btn--secondary">📋 복사</button>
+                            <button id="downloadBtn" class="btn btn--primary">💾 다운로드</button>
                         </div>
-                    </section>
+                    </div>
+                    <div class="card__body">
+                        <div id="correctedDocument" class="corrected-document"></div>
+                    </div>
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- 수정 확인 모달 -->
-    <div class="modal hidden" id="correctionModal">
+    <!-- Correction Modal -->
+    <div id="correctionModal" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">
                 <h3>수정 사항 적용</h3>
-                <button class="modal-close" aria-label="닫기">&times;</button>
+                <button class="modal-close">&times;</button>
             </div>
             <div class="modal-body">
                 <p>다음 수정 사항을 적용하시겠습니까?</p>
-                <div class="correction-preview" id="correctionPreview">
-                    <!-- 수정 내용이 여기에 표시됩니다 -->
-                </div>
+                <div id="correctionPreview" class="correction-preview"></div>
             </div>
             <div class="modal-actions">
-                <button class="btn btn--primary" id="applyCorrectionBtn">적용</button>
-                <button class="btn btn--secondary" id="cancelCorrectionBtn">취소</button>
+                <button id="applyCorrectionBtn" class="btn btn--primary">적용</button>
+                <button id="cancelCorrectionBtn" class="btn btn--secondary">취소</button>
             </div>
         </div>
     </div>
 
-    <!-- 일괄 수정 모달 -->
-    <div class="modal hidden" id="batchCorrectionModal">
+    <!-- Batch Correction Modal -->
+    <div id="batchCorrectionModal" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">
                 <h3>일괄 수정 적용</h3>
-                <button class="modal-close" aria-label="닫기">&times;</button>
+                <button class="modal-close">&times;</button>
             </div>
             <div class="modal-body">
                 <p>선택된 <span id="selectedCount">0</span>개의 수정 사항을 일괄 적용하시겠습니까?</p>
-                <div class="batch-preview" id="batchPreview">
-                    <!-- 일괄 수정 내용이 여기에 표시됩니다 -->
-                </div>
+                <div id="batchPreview" class="batch-preview"></div>
             </div>
             <div class="modal-actions">
-                <button class="btn btn--primary" id="applyBatchBtn">모두 적용</button>
-                <button class="btn btn--secondary" id="cancelBatchBtn">취소</button>
+                <button id="applyBatchBtn" class="btn btn--primary">모두 적용</button>
+                <button id="cancelBatchBtn" class="btn btn--secondary">취소</button>
             </div>
         </div>
     </div>
