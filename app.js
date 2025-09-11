@@ -1,4 +1,4 @@
-// 공문서 검증 및 교정 프로그램 JavaScript - 완전히 수정된 버전
+// 공문서 검증 및 교정 프로그램 JavaScript - 띄어쓰기 규칙 대폭 보강
 
 // 문서 유형 설정
 let documentType = 'external';
@@ -59,8 +59,9 @@ function numberToKorean(num) {
     return '복잡한수';
 }
 
-// 맞춤법 및 띄어쓰기 오류 목록
+// 맞춤법 및 띄어쓰기 오류 목록 - 대폭 보강
 const commonMistakes = [
+    // 맞춤법 오류들
     { wrong: "워크샵", correct: "워크숍", type: "spelling" },
     { wrong: "레크레이션", correct: "레크리에이션", type: "spelling" },
     { wrong: "리더쉽", correct: "리더십", type: "spelling" },
@@ -69,28 +70,136 @@ const commonMistakes = [
     { wrong: "목표 년도", correct: "목표 연도", type: "spelling" },
     { wrong: "몇일", correct: "며칠", type: "spelling" },
     { wrong: "몇 일", correct: "며칠", type: "spelling" },
+    { wrong: "익일", correct: "다음 날", type: "spelling" },
+    { wrong: "제작년", correct: "재작년", type: "spelling" },
+
+    // 조사/어미 띄어쓰기 오류들
     { wrong: "계획인 바", correct: "계획인바", type: "spacing" },
     { wrong: "요청한 바", correct: "요청한바", type: "spacing" },
+    { wrong: "알려진 바", correct: "알려진바", type: "spacing" },
+    { wrong: "승인한 바", correct: "승인한바", type: "spacing" },
+    { wrong: "검토한 바", correct: "검토한바", type: "spacing" },
+    { wrong: "관련된 바", correct: "관련된바", type: "spacing" },
+
+    // 서술어 띄어쓰기 오류들
     { wrong: "문서 입니다", correct: "문서입니다", type: "spacing" },
     { wrong: "요청 드립니다", correct: "요청드립니다", type: "spacing" },
     { wrong: "협조 바랍니다", correct: "협조바랍니다", type: "spacing" },
+    { wrong: "검토 하시기", correct: "검토하시기", type: "spacing" },
+    { wrong: "참고 하시기", correct: "참고하시기", type: "spacing" },
+    { wrong: "회신 하여", correct: "회신하여", type: "spacing" },
+    { wrong: "통보 하오니", correct: "통보하오니", type: "spacing" },
+    { wrong: "실시 하고자", correct: "실시하고자", type: "spacing" },
+
+    // 접두사 띄어쓰기 오류들
     { wrong: "재 교육", correct: "재교육", type: "spacing" },
+    { wrong: "재 검토", correct: "재검토", type: "spacing" },
+    { wrong: "재 승인", correct: "재승인", type: "spacing" },
+    { wrong: "재 작성", correct: "재작성", type: "spacing" },
+    { wrong: "신 설립", correct: "신설립", type: "spacing" },
+    { wrong: "추 가입", correct: "추가입", type: "spacing" },
+
+    // 연결부사 띄어쓰기 오류들
     { wrong: "또 한", correct: "또한", type: "spacing" },
+    { wrong: "그러므 로", correct: "그러므로", type: "spacing" },
+    { wrong: "따라 서", correct: "따라서", type: "spacing" },
+    { wrong: "그런 데", correct: "그런데", type: "spacing" },
+    { wrong: "한편 으로", correct: "한편으로", type: "spacing" },
+    { wrong: "더불어 서", correct: "더불어서", type: "spacing" },
+
+    // 시간 관련 띄어쓰기 오류들
     { wrong: "계약시", correct: "계약 시", type: "spacing" },
     { wrong: "승인시", correct: "승인 시", type: "spacing" },
+    { wrong: "완료시", correct: "완료 시", type: "spacing" },
+    { wrong: "제출시", correct: "제출 시", type: "spacing" },
+    { wrong: "개시시", correct: "개시 시", type: "spacing" },
     { wrong: "승인후", correct: "승인 후", type: "spacing" },
     { wrong: "완료후", correct: "완료 후", type: "spacing" },
+    { wrong: "검토후", correct: "검토 후", type: "spacing" },
+    { wrong: "계약 체결후", correct: "계약 체결 후", type: "spacing" },
     { wrong: "기한내", correct: "기한 내", type: "spacing" },
+    { wrong: "범위내", correct: "범위 내", type: "spacing" },
+    { wrong: "법령내", correct: "법령 내", type: "spacing" },
+
+    // 동작 관련 띄어쓰기 오류들
     { wrong: "개시 할", correct: "개시할", type: "spacing" },
     { wrong: "진행 할", correct: "진행할", type: "spacing" },
+    { wrong: "실시 할", correct: "실시할", type: "spacing" },
+    { wrong: "시행 할", correct: "시행할", type: "spacing" },
+    { wrong: "추진 할", correct: "추진할", type: "spacing" },
+    { wrong: "작성 할", correct: "작성할", type: "spacing" },
+    { wrong: "제출 할", correct: "제출할", type: "spacing" },
+    { wrong: "검토 할", correct: "검토할", type: "spacing" },
+
+    // 조 관련 띄어쓰기 오류들
     { wrong: "제 1조", correct: "제1조", type: "spacing" },
     { wrong: "제 2조", correct: "제2조", type: "spacing" },
+    { wrong: "제 3조", correct: "제3조", type: "spacing" },
+    { wrong: "1 조", correct: "제1조", type: "spacing" },
+    { wrong: "2 조", correct: "제2조", type: "spacing" },
+
+    // 단위/숫자 띄어쓰기 오류들
     { wrong: "1 개", correct: "1개", type: "spacing" },
     { wrong: "2 개", correct: "2개", type: "spacing" },
+    { wrong: "3 개", correct: "3개", type: "spacing" },
     { wrong: "1 부", correct: "1부", type: "spacing" },
     { wrong: "2 부", correct: "2부", type: "spacing" },
+    { wrong: "1 명", correct: "1명", type: "spacing" },
+    { wrong: "2 명", correct: "2명", type: "spacing" },
+    { wrong: "1 건", correct: "1건", type: "spacing" },
+    { wrong: "2 건", correct: "2건", type: "spacing" },
+    { wrong: "1 회", correct: "1회", type: "spacing" },
+    { wrong: "2 회", correct: "2회", type: "spacing" },
+    { wrong: "1 차", correct: "1차", type: "spacing" },
+    { wrong: "2 차", correct: "2차", type: "spacing" },
+
+    // 학급/학년 관련 띄어쓰기 오류들
+    { wrong: "1 학년", correct: "1학년", type: "spacing" },
+    { wrong: "2 학년", correct: "2학년", type: "spacing" },
+    { wrong: "3 학년", correct: "3학년", type: "spacing" },
+    { wrong: "1 반", correct: "1반", type: "spacing" },
+    { wrong: "2 반", correct: "2반", type: "spacing" },
+    { wrong: "고 1", correct: "고1", type: "spacing" },
+    { wrong: "고 2", correct: "고2", type: "spacing" },
+    { wrong: "고 3", correct: "고3", type: "spacing" },
+
+    // 공문서 특수 표현 띄어쓰기 오류들
+    { wrong: "관련 하여", correct: "관련하여", type: "spacing" },
+    { wrong: "대하 여", correct: "대하여", type: "spacing" },
+    { wrong: "의하 여", correct: "의하여", type: "spacing" },
+    { wrong: "따르 면", correct: "따르면", type: "spacing" },
+    { wrong: "관하 여", correct: "관하여", type: "spacing" },
+    { wrong: "해당 하는", correct: "해당하는", type: "spacing" },
+    { wrong: "필요 하다", correct: "필요하다", type: "spacing" },
+    { wrong: "중요 하다", correct: "중요하다", type: "spacing" },
+
+    // 존칭 관련 오류들
     { wrong: "교육장님", correct: "교육장", type: "spelling" },
-    { wrong: "교장님", correct: "교장", type: "spelling" }
+    { wrong: "교장선생님", correct: "교장", type: "spelling" },
+    { wrong: "교장님", correct: "교장", type: "spelling" },
+    { wrong: "부장님", correct: "부장", type: "spelling" },
+
+    // 시간 띄어쓰기 특별 검사 (24시간제 권장)
+    { wrong: "16시30분", correct: "16:30", type: "spacing" },
+    { wrong: "14시15분", correct: "14:15", type: "spacing" },
+    { wrong: "09시00분", correct: "09:00", type: "spacing" },
+    { wrong: "10시30분", correct: "10:30", type: "spacing" },
+
+    // 기관명 오류들
+    { wrong: "의정부교육청", correct: "경기도의정부교육지원청", type: "spelling" },
+    { wrong: "의정부교육지원청", correct: "경기도의정부교육지원청", type: "spelling" },
+
+    // 학교 관련 특수 표현들
+    { wrong: "학급 수", correct: "학급수", type: "spacing" },
+    { wrong: "학생 수", correct: "학생수", type: "spacing" },
+    { wrong: "교원 수", correct: "교원수", type: "spacing" },
+    { wrong: "교실 수", correct: "교실수", type: "spacing" },
+
+    // 기타 공문서 자주 쓰이는 표현들
+    { wrong: "이에 따라", correct: "이에따라", type: "spacing" },
+    { wrong: "그에 따라", correct: "그에따라", type: "spacing" },
+    { wrong: "법에 따라", correct: "법에따라", type: "spacing" },
+    { wrong: "규정에 따라", correct: "규정에따라", type: "spacing" }
 ];
 
 // 예시 문서
@@ -278,11 +387,12 @@ async function performValidation(text) {
     };
 
     const steps = [
-        { name: '문서 구조 및 항목 기호 검사', progress: 14, fn: () => checkDocumentStructure(text) },
-        { name: '금액 표기법 검사', progress: 28, fn: () => checkMoneyFormat(text) },
-        { name: '날짜/시간 표기법 검사', progress: 42, fn: () => checkDateTimeFormat(text) },
-        { name: '붙임 및 관련 표기법 검사', progress: 56, fn: () => checkAttachmentFormat(text) },
-        { name: '맞춤법 및 띄어쓰기 검사', progress: 70, fn: () => checkSpellingAndSpacing(text) },
+        { name: '문서 구조 및 항목 기호 검사', progress: 12, fn: () => checkDocumentStructure(text) },
+        { name: '금액 표기법 검사', progress: 24, fn: () => checkMoneyFormat(text) },
+        { name: '날짜/시간 표기법 검사', progress: 36, fn: () => checkDateTimeFormat(text) },
+        { name: '붙임 및 관련 표기법 검사', progress: 48, fn: () => checkAttachmentFormat(text) },
+        { name: '맞춤법 및 띄어쓰기 검사', progress: 60, fn: () => checkSpellingAndSpacing(text) },
+        { name: '고급 띄어쓰기 규칙 검사', progress: 72, fn: () => checkAdvancedSpacing(text) },
         { name: '쌍점 및 문장부호 검사', progress: 84, fn: () => checkPunctuationFormat(text) },
         { name: '끝 표시법 검사', progress: 92, fn: () => checkEndingFormat(text) },
         { name: '종합 검토', progress: 100, fn: () => generateCorrectedText() }
@@ -378,11 +488,11 @@ function checkMoneyFormat(text) {
     currentValidationResults.warnings.push(...issues.filter(i => i.type === 'warning'));
 }
 
-// 날짜/시간 표기법 검사
+// 날짜/시간 표기법 검사 - 보완된 로직
 function checkDateTimeFormat(text) {
     const issues = [];
 
-    // 잘못된 날짜 형식 검사
+    // 1. 잘못된 날짜 형식 검사 (년월일 표기)
     const wrongDatePattern = /\d{4}년\s*\d{1,2}월\s*\d{1,2}일/g;
     let match;
     while ((match = wrongDatePattern.exec(text)) !== null) {
@@ -397,6 +507,59 @@ function checkDateTimeFormat(text) {
             suggestion: corrected,
             rule: '공문서 작성 편람 - 날짜 표기법'
         });
+    }
+
+    // 2. 오전/오후 표기 검사
+    const ampmPattern = /(오전|오후)\s*\d{1,2}시(\s*\d{1,2}분)?/g;
+    let ampmMatch;
+    while ((ampmMatch = ampmPattern.exec(text)) !== null) {
+        issues.push({
+            id: 'ampm-time-error-' + ampmMatch.index,
+            type: 'error',
+            title: '잘못된 시간 표기법',
+            description: '24시각제를 사용하여 00:00 형식으로 표기해야 합니다.',
+            position: ampmMatch.index,
+            original: ampmMatch[0],
+            suggestion: '24시각제 형식 (예: 14:30)',
+            rule: '공문서 작성 편람'
+        });
+    }
+
+    // 3. "16시 30분" 형식 검사 (새로 추가)
+    const koreanTimePattern = /\d{1,2}시(\s+\d{1,2}분)?/g;
+    let koreanTimeMatch;
+    while ((koreanTimeMatch = koreanTimePattern.exec(text)) !== null) {
+        // "몇 시"가 아닌 실제 시간 표기인 경우만 체크
+        const timeText = koreanTimeMatch[0];
+        const hourMatch = timeText.match(/^(\d{1,2})시/);
+
+        if (hourMatch) {
+            const hour = parseInt(hourMatch[1]);
+            // 시간 범위가 유효한 경우만 (0-23시)
+            if (hour >= 0 && hour <= 23) {
+                let suggestion = '';
+
+                // 분이 있는 경우
+                const minuteMatch = timeText.match(/시\s+(\d{1,2})분/);
+                if (minuteMatch) {
+                    const minute = parseInt(minuteMatch[1]);
+                    suggestion = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+                } else {
+                    suggestion = `${hour.toString().padStart(2, '0')}:00`;
+                }
+
+                issues.push({
+                    id: 'korean-time-format-' + koreanTimeMatch.index,
+                    type: 'error',
+                    title: '잘못된 시간 표기법',
+                    description: '시간은 24시각제로 "14:30" 형식으로 표기해야 합니다.',
+                    position: koreanTimeMatch.index,
+                    original: timeText,
+                    suggestion: suggestion,
+                    rule: '공문서 작성 편람 - 시간 표기법'
+                });
+            }
+        }
     }
 
     currentValidationResults.errors.push(...issues.filter(i => i.type === 'error'));
@@ -492,6 +655,68 @@ function checkSpellingAndSpacing(text) {
     });
 }
 
+// 고급 띄어쓰기 규칙 검사 (새로 추가)
+function checkAdvancedSpacing(text) {
+    const issues = [];
+
+    // 1. 단위명사 앞 숫자 띄어쓰기 검사 (보다 포괄적)
+    const unitSpacingPattern = /\d\s+(개|부|명|건|회|차|학년|반|조|항|호|번)/g;
+    let unitMatch;
+    while ((unitMatch = unitSpacingPattern.exec(text)) !== null) {
+        const corrected = unitMatch[0].replace(/\s+/, '');
+        issues.push({
+            id: 'unit-spacing-' + unitMatch.index,
+            type: 'warning',
+            title: '단위 띄어쓰기 오류',
+            description: '숫자와 단위 사이에는 띄어쓰지 않습니다.',
+            position: unitMatch.index,
+            original: unitMatch[0],
+            suggestion: corrected,
+            rule: '한글 띄어쓰기 규정'
+        });
+    }
+
+    // 2. 조사 띄어쓰기 검사
+    const josaSpacingPattern = /(\w)\s+(은|는|이|가|을|를|에|에서|로|와|과|의|도|만|까지|부터)/g;
+    let josaMatch;
+    while ((josaMatch = josaSpacingPattern.exec(text)) !== null) {
+        const corrected = josaMatch[0].replace(/\s+/, '');
+        issues.push({
+            id: 'josa-spacing-' + josaMatch.index,
+            type: 'warning',
+            title: '조사 띄어쓰기 오류',
+            description: '조사는 앞 단어에 붙여 씁니다.',
+            position: josaMatch.index,
+            original: josaMatch[0],
+            suggestion: corrected,
+            rule: '한글 띄어쓰기 규정 - 조사'
+        });
+    }
+
+    // 3. 보조용언 띄어쓰기 검사
+    const auxiliaryVerbPattern = /(\w)\s+(주다|드리다|보다|있다|없다|같다|싶다|하다)/g;
+    let auxMatch;
+    while ((auxMatch = auxiliaryVerbPattern.exec(text)) !== null) {
+        // 문맥에 따라 붙여쓸지 띄어쓸지 판단 (간단한 규칙)
+        const word = auxMatch[2];
+        if (['주다', '드리다', '보다'].includes(word)) {
+            const corrected = auxMatch[0].replace(/\s+/, '');
+            issues.push({
+                id: 'auxiliary-verb-spacing-' + auxMatch.index,
+                type: 'warning',
+                title: '보조용언 띄어쓰기 검토',
+                description: '보조용언은 붙여 쓰는 것이 원칙입니다.',
+                position: auxMatch.index,
+                original: auxMatch[0],
+                suggestion: corrected,
+                rule: '한글 띄어쓰기 규정 - 보조용언'
+            });
+        }
+    }
+
+    currentValidationResults.warnings.push(...issues);
+}
+
 // 쌍점 및 문장부호 검사
 function checkPunctuationFormat(text) {
     const issues = [];
@@ -580,7 +805,8 @@ function generateCorrectedText() {
 
     allIssues.forEach(issue => {
         if (issue.original && issue.suggestion && 
-            issue.original !== '없음' && issue.original !== '현재 형식') {
+            issue.original !== '없음' && issue.original !== '현재 형식' &&
+            !issue.suggestion.includes('확인 필요')) {
             corrected = corrected.replace(issue.original, issue.suggestion);
         }
     });
@@ -732,7 +958,7 @@ function createIssueHTML(issue) {
                 </div>
             ` : ''}
             <div class="issue-actions">
-                ${issue.suggestion && issue.original !== '없음' && issue.original !== '현재 형식' ? `
+                ${issue.suggestion && issue.original !== '없음' && issue.original !== '현재 형식' && !issue.suggestion.includes('확인 필요') ? `
                     <button class="btn btn--primary btn--xs" onclick="applySingleCorrection('${issue.id}')">
                         적용
                     </button>
