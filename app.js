@@ -1,4 +1,4 @@
-// 공문서 검증 및 교정 프로그램 JavaScript - 쌍점 규칙 수정
+// 공문서 검증 및 교정 프로그램 JavaScript - 정규식 오류 수정
 
 // 문서 유형 설정
 let documentType = 'external';
@@ -152,16 +152,16 @@ const commonMistakes = [
     { wrong: "의정부교육지원청", correct: "경기도의정부교육지원청", type: "spelling" }
 ];
 
-// 항목 기호 순서 정의 (8단계까지)
+// 항목 기호 순서 정의 (8단계까지) - 정규식 수정
 const itemHierarchy = [
     { pattern: /^\s*\d+\./gm, level: 1, name: "1.", example: "1. 2. 3." },      
-    { pattern: /^\s*[가-힣]\./gm, level: 2, name: "가.", example: "가. 나. 다." },   
+    { pattern: /^\s*[가나다라마바사아자차카타파하]\./gm, level: 2, name: "가.", example: "가. 나. 다." },   
     { pattern: /^\s*\d+\)/gm, level: 3, name: "1)", example: "1) 2) 3)" },     
-    { pattern: /^\s*[가-힣]\)/gm, level: 4, name: "가)", example: "가) 나) 다)" },   
+    { pattern: /^\s*[가나다라마바사아자차카타파하]\)/gm, level: 4, name: "가)", example: "가) 나) 다)" },   
     { pattern: /^\s*\(\d+\)/gm, level: 5, name: "(1)", example: "(1) (2) (3)" }, 
-    { pattern: /^\s*\([가-힣]\)/gm, level: 6, name: "(가)", example: "(가) (나) (다)" },
-    { pattern: /^\s*[ⓛ-⑳]/gm, level: 7, name: "ⓛ", example: "ⓛ ② ③" },        
-    { pattern: /^\s*[㉮-㉻]/gm, level: 8, name: "㉮", example: "㉮ ㉯ ㉰" }         
+    { pattern: /^\s*\([가나다라마바사아자차카타파하]\)/gm, level: 6, name: "(가)", example: "(가) (나) (다)" },
+    { pattern: /^\s*[ⓛ②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳]/gm, level: 7, name: "ⓛ", example: "ⓛ ② ③" },        
+    { pattern: /^\s*[㉮㉯㉰㉱㉲㉳㉴㉵㉶㉷㉸㉹㉺㉻]/gm, level: 8, name: "㉮", example: "㉮ ㉯ ㉰" }         
 ];
 
 // 예시 문서 (모든 규칙 적용) - 쌍점 규칙 반영
@@ -205,6 +205,24 @@ let currentValidationResults = {
 
 // DOM 요소 참조
 let elements = {};
+
+// 한글 문자인지 확인하는 함수
+function isKoreanChar(char) {
+    const code = char.charCodeAt(0);
+    return (code >= 0xAC00 && code <= 0xD7AF); // 한글 완성형 범위
+}
+
+// 원 문자인지 확인하는 함수  
+function isCircledNumber(char) {
+    const circledNumbers = ['ⓛ','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩','⑪','⑫','⑬','⑭','⑮','⑯','⑰','⑱','⑲','⑳'];
+    return circledNumbers.includes(char);
+}
+
+// 괄호 한글인지 확인하는 함수
+function isCircledKorean(char) {
+    const circledKoreans = ['㉮','㉯','㉰','㉱','㉲','㉳','㉴','㉵','㉶','㉷','㉸','㉹','㉺','㉻'];
+    return circledKoreans.includes(char);
+}
 
 // 초기화 함수
 function init() {
@@ -397,51 +415,108 @@ function checkDocumentStructure(text) {
         });
     }
 
-    // 2. 항목 기호 순서 검사 (8단계까지)
+    // 2. 항목 기호 순서 검사 - 문자별로 직접 확인
     const lines = text.split('\n');
     let currentLevel = 0;
 
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
+        let detectedLevel = 0;
+        let itemType = '';
 
-        for (let j = 0; j < itemHierarchy.length; j++) {
-            const hierarchy = itemHierarchy[j];
-            if (hierarchy.pattern.test(line)) {
-                const expectedLevel = j + 1;
+        // 각 레벨 확인
+        if (/^\s*\d+\./gm.test(line)) {
+            detectedLevel = 1;
+            itemType = '1.';
+        } else if (/^\s*[가나다라마바사아자차카타파하]\./gm.test(line)) {
+            detectedLevel = 2;
+            itemType = '가.';
+        } else if (/^\s*\d+\)/gm.test(line)) {
+            detectedLevel = 3;
+            itemType = '1)';
+        } else if (/^\s*[가나다라마바사아자차카타파하]\)/gm.test(line)) {
+            detectedLevel = 4;
+            itemType = '가)';
+        } else if (/^\s*\(\d+\)/gm.test(line)) {
+            detectedLevel = 5;
+            itemType = '(1)';
+        } else if (/^\s*\([가나다라마바사아자차카타파하]\)/gm.test(line)) {
+            detectedLevel = 6;
+            itemType = '(가)';
+        } else if (line.length > 0 && isCircledNumber(line.charAt(0))) {
+            detectedLevel = 7;
+            itemType = 'ⓛ';
+        } else if (line.length > 0 && isCircledKorean(line.charAt(0))) {
+            detectedLevel = 8;
+            itemType = '㉮';
+        }
 
-                if (expectedLevel > currentLevel + 1) {
-                    issues.push({
-                        id: 'item-hierarchy-skip-' + i,
-                        type: 'warning',
-                        title: '항목 기호 순서 오류',
-                        description: `항목 기호는 순차적으로 사용해야 합니다. ${hierarchy.name} 앞에 중간 단계가 누락되었습니다.`,
-                        position: text.indexOf(line),
-                        original: line.split(' ')[0],
-                        suggestion: '순차적 항목 기호 사용 (1. → 가. → 1) → 가) → (1) → (가) → ⓛ → ㉮)',
-                        rule: '공문서 작성 편람 - 항목 표시법'
-                    });
-                }
-
-                currentLevel = expectedLevel;
-                break;
+        if (detectedLevel > 0) {
+            if (detectedLevel > currentLevel + 1) {
+                issues.push({
+                    id: 'item-hierarchy-skip-' + i,
+                    type: 'warning',
+                    title: '항목 기호 순서 오류',
+                    description: `항목 기호는 순차적으로 사용해야 합니다. ${itemType} 앞에 중간 단계가 누락되었습니다.`,
+                    position: text.indexOf(line),
+                    original: line.split(' ')[0],
+                    suggestion: '순차적 항목 기호 사용 (1. → 가. → 1) → 가) → (1) → (가) → ⓛ → ㉮)',
+                    rule: '공문서 작성 편람 - 항목 표시법'
+                });
             }
+            currentLevel = detectedLevel;
         }
     }
 
-    // 3. 항목 기호 뒤 띄어쓰기 검사
-    const noSpaceAfterItemPattern = /^\s*(\d+\.|[가-힣]\.|\d+\)|[가-힣]\)|\(\d+\)|\([가-힣]\)|[ⓛ-⑳]|[㉮-㉻])[^\s]/gm;
-    let spaceMatch;
-    while ((spaceMatch = noSpaceAfterItemPattern.exec(text)) !== null) {
-        issues.push({
-            id: 'item-no-space-' + spaceMatch.index,
-            type: 'error',
-            title: '항목 기호 띄어쓰기 오류',
-            description: '항목 기호 뒤에 한 칸 띄어써야 합니다.',
-            position: spaceMatch.index,
-            original: spaceMatch[1],
-            suggestion: spaceMatch[1] + ' ',
-            rule: '공문서 작성 편람 - 항목 표시법'
-        });
+    // 3. 항목 기호 뒤 띄어쓰기 검사 - 개별 확인
+    const lines2 = text.split('\n');
+    for (let i = 0; i < lines2.length; i++) {
+        const line = lines2[i];
+
+        // 각 항목 기호 패턴 확인
+        const patterns = [
+            /^(\s*\d+\.)([^\s])/,  // 1.
+            /^(\s*[가나다라마바사아자차카타파하]\.)([^\s])/,  // 가.
+            /^(\s*\d+\))([^\s])/,  // 1)
+            /^(\s*[가나다라마바사아자차카타파하]\))([^\s])/,  // 가)
+            /^(\s*\(\d+\))([^\s])/,  // (1)
+            /^(\s*\([가나다라마바사아자차카타파하]\))([^\s])/ // (가)
+        ];
+
+        for (const pattern of patterns) {
+            const match = pattern.exec(line);
+            if (match) {
+                issues.push({
+                    id: 'item-no-space-' + text.indexOf(line) + '-' + match.index,
+                    type: 'error',
+                    title: '항목 기호 띄어쓰기 오류',
+                    description: '항목 기호 뒤에 한 칸 띄어써야 합니다.',
+                    position: text.indexOf(line) + match.index,
+                    original: match[1],
+                    suggestion: match[1] + ' ',
+                    rule: '공문서 작성 편람 - 항목 표시법'
+                });
+            }
+        }
+
+        // 원문자, 괄호 한글 확인
+        if (line.length >= 2) {
+            const firstChar = line.charAt(0);
+            const secondChar = line.charAt(1);
+
+            if ((isCircledNumber(firstChar) || isCircledKorean(firstChar)) && secondChar !== ' ') {
+                issues.push({
+                    id: 'circle-no-space-' + text.indexOf(line),
+                    type: 'error',
+                    title: '항목 기호 띄어쓰기 오류',
+                    description: '항목 기호 뒤에 한 칸 띄어써야 합니다.',
+                    position: text.indexOf(line),
+                    original: firstChar,
+                    suggestion: firstChar + ' ',
+                    rule: '공문서 작성 편람 - 항목 표시법'
+                });
+            }
+        }
     }
 
     currentValidationResults.errors.push(...issues.filter(i => i.type === 'error'));
@@ -721,8 +796,6 @@ function checkPunctuationFormat(text) {
 
         // 쌍점 뒤에 공백이 없고 문자가 바로 오는 경우만 오류
         if (nextChar && nextChar !== ' ' && nextChar !== '\n' && nextChar !== '\t') {
-            const beforeChar = text.charAt(colonMatch.index - 1);
-
             issues.push({
                 id: 'colon-spacing-' + colonMatch.index,
                 type: 'warning',
