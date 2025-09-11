@@ -1,4 +1,4 @@
-// 공문서 검증 및 교정 프로그램 JavaScript - 완전판
+// 공문서 검증 및 교정 프로그램 JavaScript - 쌍점 규칙 수정
 
 // 문서 유형 설정
 let documentType = 'external';
@@ -164,7 +164,7 @@ const itemHierarchy = [
     { pattern: /^\s*[㉮-㉻]/gm, level: 8, name: "㉮", example: "㉮ ㉯ ㉰" }         
 ];
 
-// 예시 문서 (모든 규칙 적용)
+// 예시 문서 (모든 규칙 적용) - 쌍점 규칙 반영
 const sampleDocument = `수신 ○○○기관장
 
 제목 2024년도 업무협조 요청
@@ -185,7 +185,7 @@ const sampleDocument = `수신 ○○○기관장
 
 4. 회의 개최
 
-가. 일시: 2024. 12. 15.(일) 14:00
+가. 일시: 2024. 12. 15.(일) 09:00~13:30
 
 나. 장소: 경기도의정부교육지원청 3층 회의실
 
@@ -708,24 +708,32 @@ function checkSpellingAndSpacing(text) {
     });
 }
 
-// 쌍점 및 문장부호 검사
+// 쌍점 및 문장부호 검사 - 수정된 로직
 function checkPunctuationFormat(text) {
     const issues = [];
 
-    // 1. 쌍점 뒤 띄어쓰기 검사
-    const colonPattern = /([^\s]):([^\s])/g;
+    // 1. 쌍점 뒤 띄어쓰기 검사 (시간 표기 제외, 뒤에 띄어쓰기 없는 경우만 오류)
+    // 시간 표기가 아닌 쌍점에 대해서만 검사 (09:00, 13:30 등 제외)
+    const generalColonPattern = /:(?![0-9])/g;  // 뒤에 숫자가 오지 않는 쌍점
     let colonMatch;
-    while ((colonMatch = colonPattern.exec(text)) !== null) {
-        issues.push({
-            id: 'colon-spacing-' + colonMatch.index,
-            type: 'warning',
-            title: '쌍점 띄어쓰기 오류',
-            description: '쌍점(:) 뒤에 한 칸 띄어써야 합니다.',
-            position: colonMatch.index,
-            original: colonMatch[0],
-            suggestion: colonMatch[1] + ': ' + colonMatch[2],
-            rule: '공문서 작성 편람'
-        });
+    while ((colonMatch = generalColonPattern.exec(text)) !== null) {
+        const nextChar = text.charAt(colonMatch.index + 1);
+
+        // 쌍점 뒤에 공백이 없고 문자가 바로 오는 경우만 오류
+        if (nextChar && nextChar !== ' ' && nextChar !== '\n' && nextChar !== '\t') {
+            const beforeChar = text.charAt(colonMatch.index - 1);
+
+            issues.push({
+                id: 'colon-spacing-' + colonMatch.index,
+                type: 'warning',
+                title: '쌍점 띄어쓰기 오류',
+                description: '쌍점(:) 뒤에 한 칸 띄어써야 합니다.',
+                position: colonMatch.index,
+                original: ':' + nextChar,
+                suggestion: ': ' + nextChar,
+                rule: '공문서 작성 편람 - 쌍점 표기법'
+            });
+        }
     }
 
     // 2. 쉼표 뒤 띄어쓰기 검사
