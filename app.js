@@ -481,7 +481,7 @@ function checkDateTimeFormat(text) {
     currentValidationResults.errors.push(...issues);
 }
 
-// 문서 어미 검사 - 수정된 내부결재 규칙
+// 문서 어미 검사
 function checkDocumentEnding(text) {
     const issues = [];
 
@@ -531,7 +531,7 @@ function checkDocumentEnding(text) {
             }
 
         } else if (documentType === 'internal') {
-            // 내부결재: ~하고자 합니다, ~고자 합니다만 허용 (수정됨)
+            // 내부결재: ~하고자 합니다, ~고자 합니다만 허용
             const internalEndings = [
                 '하고자 합니다', '고자 합니다'
             ];
@@ -670,7 +670,7 @@ function checkSpellingAndSpacing(text) {
     });
 }
 
-// 교정된 텍스트 생성
+// 교정된 텍스트 생성 - 마침표 중복 문제 해결
 function generateCorrectedText() {
     let corrected = currentValidationResults.originalText;
 
@@ -689,10 +689,30 @@ function generateCorrectedText() {
         }
     });
 
+    // 끝 표시법 처리 - 마침표 중복 방지 로직 개선
     const trimmed = corrected.trim();
     if (!trimmed.endsWith('.  끝.')) {
-        corrected = corrected.replace(/\.?\s*끝\.?\s*$/, '');
-        corrected = corrected.trim() + '.  끝.';
+        // 기존에 "끝."이 있는지 확인
+        if (trimmed.endsWith('끝.')) {
+            // "끝." 앞에 마침표가 있는지 확인
+            if (trimmed.endsWith('.끝.')) {
+                // 마침표가 있지만 띄어쓰기가 없는 경우: ".끝." → ".  끝."
+                corrected = corrected.replace(/\.끝\.$/, '.  끝.');
+            } else {
+                // 마침표가 없는 경우: "끝." → ".  끝."
+                corrected = corrected.replace(/(?<!\.)끝\.$/, '.  끝.');
+            }
+        } else {
+            // "끝"이나 "끝." 모두 없는 경우
+            // 마지막이 마침표로 끝나는지 확인
+            if (trimmed.endsWith('.')) {
+                // 마침표로 끝나는 경우: 띄어쓰기 2칸 + "끝." 추가
+                corrected = corrected.trim() + '  끝.';
+            } else {
+                // 마침표가 없는 경우: 마침표 + 띄어쓰기 2칸 + "끝." 추가
+                corrected = corrected.trim() + '.  끝.';
+            }
+        }
     }
 
     currentValidationResults.correctedText = corrected;
