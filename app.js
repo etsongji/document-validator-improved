@@ -1,4 +1,5 @@
-// 공문서 검증 및 교정 프로그램 - 완전히 수정된 버전
+// 공문서 검증 및 교정 프로그램
+// Copyright (c) 2025 songjieon. All rights reserved.
 
 // 문서 유형 설정
 let documentType = 'external';
@@ -16,6 +17,16 @@ const validationRules = {
     moneyFormat: {
         message: "금액은 '금113,560원(금일십일만삼천오백육십원)' 형식으로 표기해야 합니다.",
         severity: "error"
+    },
+    documentEnding: {
+        external: {
+            message: "대외문서는 '~합니다', '~드립니다', '~바랍니다' 등으로 끝나야 합니다.",
+            severity: "error"
+        },
+        internal: {
+            message: "내부결재는 '~하고자 합니다', '~고자 합니다'로 끝나야 합니다.",
+            severity: "error"
+        }
     }
 };
 
@@ -75,8 +86,9 @@ const commonMistakes = [
     { wrong: "부장님", correct: "부장", type: "spelling" }
 ];
 
-// 예시 문서
-const sampleDocument = `수신 ○○○기관장
+// 예시 문서들
+const sampleDocuments = {
+    external: `수신 ○○○기관장
 
 제목 2024년도 업무협조 요청
 
@@ -93,14 +105,25 @@ const sampleDocument = `수신 ○○○기관장
 
 3. 소요예산: 금5,000,000원(금오백만원)
 
-4. 회의 개최
+붙임  1. ○○○ 계획서 1부.  끝.`,
 
-가. 일시: 2024. 12. 15.(일) 09:00~13:30
-나. 장소: 경기도의정부교육지원청 3층 회의실
-다. 대상: 교육장, 교장 등 관계자
+    internal: `제목 2024년도 업무 추진 계획(안)
 
-붙임  1. ○○○ 계획서 1부.
-  2. ○○○ 서류 1부.  끝.`;
+1. 추진 배경
+
+○○○○와 관련하여 다음과 같이 업무를 추진하고자 합니다.
+
+1. 추진 내용
+
+가. 계획 수립
+나. 예산 확보
+
+2. 추진 일정: 2024. 12. 31.까지
+
+3. 소요예산: 금5,000,000원(금오백만원)
+
+붙임  1. 세부 추진계획 1부.  끝.`
+};
 
 // 전역 상태
 let currentValidationResults = {
@@ -116,6 +139,7 @@ let elements = {};
 
 // 초기화 함수
 function init() {
+    console.log('공문서 검증 시스템 - Copyright (c) 2025 songjieon');
     console.log('Initializing validation app...');
 
     elements = {
@@ -143,7 +167,45 @@ function init() {
 
     setupEventListeners();
     updateCharCount();
+    updateSampleDocument();
+    addSimpleCopyrightFooter();
     console.log('App initialized successfully');
+}
+
+// 간단한 저작권 푸터 추가 함수
+function addSimpleCopyrightFooter() {
+    const existingFooter = document.getElementById('copyrightFooter');
+    if (existingFooter) {
+        existingFooter.remove();
+    }
+
+    const footer = document.createElement('div');
+    footer.id = 'copyrightFooter';
+    footer.style.cssText = `
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background-color: rgba(248, 249, 250, 0.95);
+        color: #6c757d;
+        text-align: center;
+        padding: 6px 12px;
+        font-size: 11px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        border-top: 1px solid rgba(0,0,0,0.05);
+        z-index: 1000;
+        opacity: 0.8;
+    `;
+
+    footer.innerHTML = `Copyright © 2025 songjieon. All rights reserved.`;
+
+    document.body.appendChild(footer);
+    document.body.style.paddingBottom = '30px';
+}
+
+// 문서 유형에 따른 예시 문서 업데이트
+function updateSampleDocument() {
+    // 현재 선택된 문서 유형에 따라 예시 변경
 }
 
 // 이벤트 리스너 설정
@@ -151,6 +213,8 @@ function setupEventListeners() {
     if (elements.documentType) {
         elements.documentType.addEventListener('change', function(e) {
             documentType = e.target.value;
+            updateSampleDocument();
+            console.log('문서 유형 변경됨:', documentType);
         });
     }
 
@@ -255,9 +319,10 @@ async function performValidation(text) {
     };
 
     const steps = [
-        { name: '날짜/시간 표기법 검사', progress: 20, fn: () => checkDateTimeFormat(text) },
-        { name: '맞춤법 및 띄어쓰기 검사', progress: 40, fn: () => checkSpellingAndSpacing(text) },
-        { name: '문서 구조 검사', progress: 60, fn: () => checkDocumentStructure(text) },
+        { name: '날짜/시간 표기법 검사', progress: 16, fn: () => checkDateTimeFormat(text) },
+        { name: '맞춤법 및 띄어쓰기 검사', progress: 32, fn: () => checkSpellingAndSpacing(text) },
+        { name: '문서 구조 검사', progress: 48, fn: () => checkDocumentStructure(text) },
+        { name: '문서 어미 검사', progress: 64, fn: () => checkDocumentEnding(text) },
         { name: '붙임 표기법 검사', progress: 80, fn: () => checkAttachmentFormat(text) },
         { name: '종합 검토', progress: 100, fn: () => generateCorrectedText() }
     ];
@@ -283,7 +348,7 @@ function updateProgress(progress, text) {
     }
 }
 
-// 날짜/시간 표기법 검사 - 단순하고 확실한 버전
+// 날짜/시간 표기법 검사
 function checkDateTimeFormat(text) {
     const issues = [];
 
@@ -312,8 +377,8 @@ function checkDateTimeFormat(text) {
         const original = match[0];
         const parts = original.split('-');
         const year = parts[0];
-        const month = parseInt(parts[1]).toString(); // 앞자리 0 제거
-        const day = parseInt(parts[2]).toString();   // 앞자리 0 제거
+        const month = parseInt(parts[1]).toString();
+        const day = parseInt(parts[2]).toString();
         const corrected = year + '. ' + month + '. ' + day + '.';
 
         issues.push({
@@ -328,15 +393,13 @@ function checkDateTimeFormat(text) {
         });
     }
 
-    // 3. 잘못된 온점 날짜 검사 (띄어쓰기 없거나 앞자리 0이 있는 경우)
+    // 3. 잘못된 온점 날짜 검사
     const dotDateRegex = /\d{4}\.\d{1,2}\.\d{1,2}\./g;
     while ((match = dotDateRegex.exec(text)) !== null) {
         const original = match[0];
-        // 올바른 형식인지 확인 (띄어쓰기가 있는지)
         const hasSpaces = /\d{4}\. \d{1,2}\. \d{1,2}\./.test(original);
 
         if (!hasSpaces) {
-            // 띄어쓰기 추가
             const corrected = original.replace(/(\d{4})\.(\d{1,2})\.(\d{1,2})\./, '$1. $2. $3.');
 
             issues.push({
@@ -418,6 +481,115 @@ function checkDateTimeFormat(text) {
     currentValidationResults.errors.push(...issues);
 }
 
+// 문서 어미 검사 - 수정된 내부결재 규칙
+function checkDocumentEnding(text) {
+    const issues = [];
+
+    // "끝." 앞의 마지막 문장을 찾기
+    const beforeEndPattern = /([^.!?]*)\.\s*끝\./;
+    const match = beforeEndPattern.exec(text);
+
+    if (match) {
+        const lastSentence = match[1].trim();
+        console.log('마지막 문장:', lastSentence);
+
+        if (documentType === 'external') {
+            // 대외문서: ~합니다, ~드립니다, ~바랍니다 등으로 끝나야 함
+            const externalEndings = [
+                '합니다', '드립니다', '바랍니다', '드리겠습니다', 
+                '요청합니다', '제출합니다', '보고합니다', '신청합니다',
+                '통보합니다', '협조바랍니다', '검토바랍니다', '회신바랍니다'
+            ];
+
+            const hasCorrectEnding = externalEndings.some(ending => lastSentence.endsWith(ending));
+
+            if (!hasCorrectEnding) {
+                // 잘못된 어미가 있는지 확인
+                if (lastSentence.includes('하고자') || lastSentence.includes('고자')) {
+                    issues.push({
+                        id: 'document-ending-wrong',
+                        type: 'error',
+                        title: '문서 어미 오류',
+                        description: '대외문서는 "~합니다", "~드립니다", "~바랍니다" 등으로 끝나야 합니다. 현재 내부결재 어미를 사용하고 있습니다.',
+                        position: match.index,
+                        original: lastSentence,
+                        suggestion: lastSentence.replace(/(하고자\s*합니다|고자\s*합니다)$/, '드립니다'),
+                        rule: '공문서 작성 편람 - 대외문서 어미'
+                    });
+                } else {
+                    issues.push({
+                        id: 'document-ending-check',
+                        type: 'warning',
+                        title: '문서 어미 확인 필요',
+                        description: '대외문서는 "~합니다", "~드립니다", "~바랍니다" 등으로 끝나야 합니다.',
+                        position: match.index,
+                        original: lastSentence,
+                        suggestion: '적절한 대외문서 어미로 수정 필요',
+                        rule: '공문서 작성 편람 - 대외문서 어미'
+                    });
+                }
+            }
+
+        } else if (documentType === 'internal') {
+            // 내부결재: ~하고자 합니다, ~고자 합니다만 허용 (수정됨)
+            const internalEndings = [
+                '하고자 합니다', '고자 합니다'
+            ];
+
+            const hasCorrectEnding = internalEndings.some(ending => lastSentence.endsWith(ending));
+
+            if (!hasCorrectEnding) {
+                // 잘못된 어미가 있는지 확인 (대외문서 어미 또는 제외된 내부결재 어미)
+                if (lastSentence.endsWith('합니다') && !lastSentence.includes('하고자') && !lastSentence.includes('고자')) {
+                    issues.push({
+                        id: 'document-ending-wrong',
+                        type: 'error',
+                        title: '문서 어미 오류',
+                        description: '내부결재는 "~하고자 합니다" 또는 "~고자 합니다"로 끝나야 합니다. 현재 대외문서 어미를 사용하고 있습니다.',
+                        position: match.index,
+                        original: lastSentence,
+                        suggestion: lastSentence.replace(/합니다$/, '하고자 합니다'),
+                        rule: '공문서 작성 편람 - 내부결재 어미'
+                    });
+                } else if (lastSentence.endsWith('하고자 함') || lastSentence.endsWith('하고자 하오니')) {
+                    // 제외된 내부결재 어미 사용
+                    let corrected = lastSentence;
+                    if (lastSentence.endsWith('하고자 함')) {
+                        corrected = lastSentence.replace(/하고자 함$/, '하고자 합니다');
+                    } else if (lastSentence.endsWith('하고자 하오니')) {
+                        corrected = lastSentence.replace(/하고자 하오니$/, '하고자 합니다');
+                    }
+
+                    issues.push({
+                        id: 'document-ending-wrong',
+                        type: 'error',
+                        title: '문서 어미 오류',
+                        description: '내부결재는 "~하고자 합니다" 또는 "~고자 합니다"로 끝나야 합니다.',
+                        position: match.index,
+                        original: lastSentence,
+                        suggestion: corrected,
+                        rule: '공문서 작성 편람 - 내부결재 어미'
+                    });
+                } else {
+                    issues.push({
+                        id: 'document-ending-check',
+                        type: 'warning',
+                        title: '문서 어미 확인 필요',
+                        description: '내부결재는 "~하고자 합니다" 또는 "~고자 합니다"로 끝나야 합니다.',
+                        position: match.index,
+                        original: lastSentence,
+                        suggestion: '적절한 내부결재 어미로 수정 필요',
+                        rule: '공문서 작성 편람 - 내부결재 어미'
+                    });
+                }
+            }
+        }
+    }
+
+    currentValidationResults.errors.push(...issues.filter(i => i.type === 'error'));
+    currentValidationResults.warnings.push(...issues.filter(i => i.type === 'warning'));
+}
+
 // 문서 구조 검사
 function checkDocumentStructure(text) {
     const issues = [];
@@ -448,9 +620,7 @@ function checkAttachmentFormat(text) {
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
 
-        // 붙임으로 시작하는 라인 검사
         if (line.startsWith('붙임')) {
-            // 붙임 뒤 띄어쓰기 검사 - 정확히 2칸이어야 함
             const spaceMatch = line.match(/^붙임(\s*)/);
             if (spaceMatch && spaceMatch[1].length !== 2) {
                 issues.push({
@@ -509,21 +679,18 @@ function generateCorrectedText() {
         ...currentValidationResults.warnings
     ];
 
-    // 위치 기준으로 역순 정렬
     allIssues.sort((a, b) => b.position - a.position);
 
     allIssues.forEach(issue => {
         if (issue.original && issue.suggestion && 
-            issue.original !== '현재 형식' && issue.original !== '없음') {
-            // 전체 텍스트에서 첫 번째 발견된 것만 교체
+            issue.original !== '현재 형식' && issue.original !== '없음' &&
+            !issue.suggestion.includes('수정 필요')) {
             corrected = corrected.replace(issue.original, issue.suggestion);
         }
     });
 
-    // 끝 표시법 처리
     const trimmed = corrected.trim();
     if (!trimmed.endsWith('.  끝.')) {
-        // 기존 끝. 관련 표현 제거
         corrected = corrected.replace(/\.?\s*끝\.?\s*$/, '');
         corrected = corrected.trim() + '.  끝.';
     }
@@ -658,7 +825,7 @@ function createIssueHTML(issue) {
                 </div>
             </div>
             <p class="issue-description">${issue.description}</p>
-            ${issue.original && issue.suggestion && issue.original !== '현재 형식' && issue.original !== '없음' ? `
+            ${issue.original && issue.suggestion && issue.original !== '현재 형식' && issue.original !== '없음' && !issue.suggestion.includes('수정 필요') ? `
                 <div class="issue-correction">
                     <span class="correction-wrong">${escapeHtml(issue.original)}</span>
                     <span class="correction-arrow">→</span>
@@ -695,7 +862,8 @@ function clearDocument() {
 // 예시 문서 로드
 function loadSampleDocument() {
     if (elements.documentInput) {
-        elements.documentInput.value = sampleDocument;
+        const sampleText = sampleDocuments[documentType] || sampleDocuments.external;
+        elements.documentInput.value = sampleText;
         updateCharCount();
     }
 }
@@ -785,7 +953,7 @@ function showMessage(message, type) {
     const toast = document.createElement('div');
     toast.className = 'status status--' + type;
     toast.textContent = message;
-    toast.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;min-width:300px;padding:12px;border-radius:4px;color:white;font-weight:bold;';
+    toast.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;min-width:300px;padding:12px;border-radius:8px;color:white;font-weight:bold;box-shadow:0 4px 12px rgba(0,0,0,0.15);';
 
     if (type === 'success') {
         toast.style.backgroundColor = '#28a745';
