@@ -1,4 +1,4 @@
-// 공문서 검증 및 교정 프로그램 JavaScript - 정규식 오류 수정
+// 공문서 검증 및 교정 프로그램 JavaScript - 검증 로직 수정
 
 // 문서 유형 설정
 let documentType = 'external';
@@ -60,7 +60,7 @@ function numberToKorean(num) {
     return '복잡한수';
 }
 
-// 맞춤법 및 띄어쓰기 오류 목록 - 종합판
+// 맞춤법 및 띄어쓰기 오류 목록
 const commonMistakes = [
     // 맞춤법 오류들
     { wrong: "워크샵", correct: "워크숍", type: "spelling" },
@@ -75,7 +75,7 @@ const commonMistakes = [
     { wrong: "몇일", correct: "며칠", type: "spelling" },
     { wrong: "몇 일", correct: "며칠", type: "spelling" },
 
-    // 조사/어미 띄어쓰기 오류들 (편람 기준)
+    // 조사/어미 띄어쓰기 오류들
     { wrong: "계획인 바", correct: "계획인바", type: "spacing" },
     { wrong: "요청한 바", correct: "요청한바", type: "spacing" },
     { wrong: "알려진 바", correct: "알려진바", type: "spacing" },
@@ -94,7 +94,6 @@ const commonMistakes = [
     { wrong: "재 교육", correct: "재교육", type: "spacing" },
     { wrong: "재 검토", correct: "재검토", type: "spacing" },
     { wrong: "재 승인", correct: "재승인", type: "spacing" },
-    { wrong: "재교육을", correct: "재교육을", type: "spacing" },
 
     // 연결부사 띄어쓰기 오류들
     { wrong: "또 한", correct: "또한", type: "spacing" },
@@ -152,7 +151,7 @@ const commonMistakes = [
     { wrong: "의정부교육지원청", correct: "경기도의정부교육지원청", type: "spelling" }
 ];
 
-// 항목 기호 순서 정의 (8단계까지) - 정규식 수정
+// 항목 기호 순서 정의 (8단계까지)
 const itemHierarchy = [
     { pattern: /^\s*\d+\./gm, level: 1, name: "1.", example: "1. 2. 3." },      
     { pattern: /^\s*[가나다라마바사아자차카타파하]\./gm, level: 2, name: "가.", example: "가. 나. 다." },   
@@ -164,7 +163,7 @@ const itemHierarchy = [
     { pattern: /^\s*[㉮㉯㉰㉱㉲㉳㉴㉵㉶㉷㉸㉹㉺㉻]/gm, level: 8, name: "㉮", example: "㉮ ㉯ ㉰" }         
 ];
 
-// 예시 문서 (모든 규칙 적용) - 쌍점 규칙 반영
+// 예시 문서
 const sampleDocument = `수신 ○○○기관장
 
 제목 2024년도 업무협조 요청
@@ -178,6 +177,10 @@ const sampleDocument = `수신 ○○○기관장
 가. 관련 자료 제출
 
 나. 담당자 지정
+
+1) 업무 담당자
+
+2) 연락처
 
 2. 협조기한: 2024. 12. 31.(화) 14:00까지
 
@@ -209,7 +212,7 @@ let elements = {};
 // 한글 문자인지 확인하는 함수
 function isKoreanChar(char) {
     const code = char.charCodeAt(0);
-    return (code >= 0xAC00 && code <= 0xD7AF); // 한글 완성형 범위
+    return (code >= 0xAC00 && code <= 0xD7AF);
 }
 
 // 원 문자인지 확인하는 함수  
@@ -395,52 +398,37 @@ function updateProgress(progress, text) {
     }
 }
 
-// 문서 구조 및 항목 기호 검사 
+// 문서 구조 및 항목 기호 검사 - 수정된 로직
 function checkDocumentStructure(text) {
     const issues = [];
 
-    // 1. 잘못된 항목 기호 형식 검사
-    const wrongItemPattern = /^\s*\d+\)\s/gm;
-    let match;
-    while ((match = wrongItemPattern.exec(text)) !== null) {
-        issues.push({
-            id: 'wrong-item-symbol-' + match.index,
-            type: 'error',
-            title: '잘못된 항목 기호',
-            description: '1단계 항목은 "1."로 표기해야 합니다. "1)"은 3단계에서 사용합니다.',
-            position: match.index,
-            original: match[0].trim(),
-            suggestion: match[0].replace(')', '.'),
-            rule: '공문서 작성 편람 - 항목 표시법'
-        });
-    }
-
-    // 2. 항목 기호 순서 검사 - 문자별로 직접 확인
+    // 항목 기호 순서 검사 - 컨텍스트 고려
     const lines = text.split('\n');
-    let currentLevel = 0;
+    let itemStack = []; // 현재 항목 기호 스택
 
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
         let detectedLevel = 0;
         let itemType = '';
+        let itemMatch = null;
 
         // 각 레벨 확인
-        if (/^\s*\d+\./gm.test(line)) {
+        if ((itemMatch = /^\s*(\d+)\./gm.exec(line))) {
             detectedLevel = 1;
             itemType = '1.';
-        } else if (/^\s*[가나다라마바사아자차카타파하]\./gm.test(line)) {
+        } else if ((itemMatch = /^\s*([가나다라마바사아자차카타파하])\./gm.exec(line))) {
             detectedLevel = 2;
             itemType = '가.';
-        } else if (/^\s*\d+\)/gm.test(line)) {
+        } else if ((itemMatch = /^\s*(\d+)\)/gm.exec(line))) {
             detectedLevel = 3;
             itemType = '1)';
-        } else if (/^\s*[가나다라마바사아자차카타파하]\)/gm.test(line)) {
+        } else if ((itemMatch = /^\s*([가나다라마바사아자차카타파하])\)/gm.exec(line))) {
             detectedLevel = 4;
             itemType = '가)';
-        } else if (/^\s*\(\d+\)/gm.test(line)) {
+        } else if ((itemMatch = /^\s*\((\d+)\)/gm.exec(line))) {
             detectedLevel = 5;
             itemType = '(1)';
-        } else if (/^\s*\([가나다라마바사아자차카타파하]\)/gm.test(line)) {
+        } else if ((itemMatch = /^\s*\(([가나다라마바사아자차카타파하])\)/gm.exec(line))) {
             detectedLevel = 6;
             itemType = '(가)';
         } else if (line.length > 0 && isCircledNumber(line.charAt(0))) {
@@ -452,23 +440,35 @@ function checkDocumentStructure(text) {
         }
 
         if (detectedLevel > 0) {
-            if (detectedLevel > currentLevel + 1) {
-                issues.push({
-                    id: 'item-hierarchy-skip-' + i,
-                    type: 'warning',
-                    title: '항목 기호 순서 오류',
-                    description: `항목 기호는 순차적으로 사용해야 합니다. ${itemType} 앞에 중간 단계가 누락되었습니다.`,
-                    position: text.indexOf(line),
-                    original: line.split(' ')[0],
-                    suggestion: '순차적 항목 기호 사용 (1. → 가. → 1) → 가) → (1) → (가) → ⓛ → ㉮)',
-                    rule: '공문서 작성 편람 - 항목 표시법'
-                });
+            // 스택 정리 - 현재 레벨보다 높은 레벨들 제거
+            itemStack = itemStack.filter(item => item.level < detectedLevel);
+
+            // 올바른 순서인지 확인
+            const expectedParentLevel = detectedLevel - 1;
+
+            if (expectedParentLevel > 0) {
+                const hasValidParent = itemStack.some(item => item.level === expectedParentLevel);
+
+                if (!hasValidParent && detectedLevel > 1) {
+                    issues.push({
+                        id: 'item-hierarchy-skip-' + i,
+                        type: 'warning',
+                        title: '항목 기호 순서 주의',
+                        description: `${itemType} 앞에 상위 단계 항목이 누락되었을 수 있습니다. 순서: 1. → 가. → 1) → 가) → (1) → (가) → ⓛ → ㉮`,
+                        position: text.indexOf(line),
+                        original: line.split(' ')[0],
+                        suggestion: '상위 단계 항목 확인 필요',
+                        rule: '공문서 작성 편람 - 항목 표시법'
+                    });
+                }
             }
-            currentLevel = detectedLevel;
+
+            // 현재 항목을 스택에 추가
+            itemStack.push({ level: detectedLevel, type: itemType });
         }
     }
 
-    // 3. 항목 기호 뒤 띄어쓰기 검사 - 개별 확인
+    // 항목 기호 뒤 띄어쓰기 검사 - 개별 확인
     const lines2 = text.split('\n');
     for (let i = 0; i < lines2.length; i++) {
         const line = lines2[i];
@@ -655,43 +655,53 @@ function checkDateTimeFormat(text) {
     currentValidationResults.warnings.push(...issues.filter(i => i.type === 'warning'));
 }
 
-// 붙임 및 관련 표기법 검사
+// 붙임 및 관련 표기법 검사 - 수정된 로직
 function checkAttachmentFormat(text) {
     const issues = [];
 
-    // 1. 붙임 앞 띄어쓰기 검사
-    const attachmentSpacePattern = /\s+붙임/g;
-    let spaceMatch;
-    while ((spaceMatch = attachmentSpacePattern.exec(text)) !== null) {
-        issues.push({
-            id: 'attachment-space-' + spaceMatch.index,
-            type: 'error',
-            title: '붙임 앞 띄어쓰기 오류',
-            description: '붙임 앞은 띄어쓰기하지 않습니다.',
-            position: spaceMatch.index,
-            original: spaceMatch[0] + '붙임',
-            suggestion: '붙임',
-            rule: '공문서 작성 편람 - 붙임 표기법'
-        });
-    }
+    // 1. 붙임 앞 띄어쓰기 검사 - 줄 시작 부분만 검사
+    const lines = text.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
 
-    // 2. 붙임 뒤 띄어쓰기 검사 (2칸 필요)
-    const attachmentAfterPattern = /붙임(?!\s\s)/g;
-    let afterMatch;
-    while ((afterMatch = attachmentAfterPattern.exec(text)) !== null) {
-        // 붙임 다음에 숫자가 바로 오는 경우 체크
-        const nextChar = text.charAt(afterMatch.index + 2);
-        if (nextChar && nextChar !== ' ') {
+        // 줄 시작에서 공백 후 붙임이 나오는 경우 (잘못된 경우)
+        if (/^\s+붙임/.test(line)) {
             issues.push({
-                id: 'attachment-after-space-' + afterMatch.index,
+                id: 'attachment-space-' + i,
                 type: 'error',
-                title: '붙임 뒤 띄어쓰기 오류',
-                description: '붙임 뒤에 2칸 띄어써야 합니다.',
-                position: afterMatch.index,
-                original: '붙임',
-                suggestion: '붙임  ',
+                title: '붙임 앞 띄어쓰기 오류',
+                description: '붙임은 줄 시작에서 띄어쓰기 없이 시작해야 합니다.',
+                position: text.indexOf(line),
+                original: line.match(/^(\s+붙임)/)[0],
+                suggestion: '붙임',
                 rule: '공문서 작성 편람 - 붙임 표기법'
             });
+        }
+    }
+
+    // 2. 붙임 뒤 띄어쓰기 검사 - 더 정확한 패턴 매칭
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+
+        // "붙임" 뒤에 정확히 2칸 띄어쓰기가 없는 경우 체크
+        const attachmentMatch = /^붙임(\s*)(.+)/.exec(line);
+        if (attachmentMatch) {
+            const spaces = attachmentMatch[1];
+            const followingText = attachmentMatch[2];
+
+            // 뒤에 내용이 있는데 2칸 띄어쓰기가 아닌 경우만 오류
+            if (followingText && spaces.length !== 2) {
+                issues.push({
+                    id: 'attachment-after-space-' + i,
+                    type: 'error',
+                    title: '붙임 뒤 띄어쓰기 오류',
+                    description: '붙임 뒤에 정확히 2칸 띄어써야 합니다.',
+                    position: text.indexOf(line),
+                    original: '붙임' + spaces,
+                    suggestion: '붙임  ',
+                    rule: '공문서 작성 편람 - 붙임 표기법'
+                });
+            }
         }
     }
 
@@ -699,7 +709,6 @@ function checkAttachmentFormat(text) {
     const relatedPattern = /\d+\.\s*관련\s*:/g;
     let relatedMatch;
     while ((relatedMatch = relatedPattern.exec(text)) !== null) {
-        const beforeText = text.substring(0, relatedMatch.index);
         const afterText = text.substring(relatedMatch.index);
 
         // 다음 줄에 가. 나. 다. 형태가 있는지 확인
@@ -783,18 +792,16 @@ function checkSpellingAndSpacing(text) {
     });
 }
 
-// 쌍점 및 문장부호 검사 - 수정된 로직
+// 쌍점 및 문장부호 검사
 function checkPunctuationFormat(text) {
     const issues = [];
 
     // 1. 쌍점 뒤 띄어쓰기 검사 (시간 표기 제외, 뒤에 띄어쓰기 없는 경우만 오류)
-    // 시간 표기가 아닌 쌍점에 대해서만 검사 (09:00, 13:30 등 제외)
-    const generalColonPattern = /:(?![0-9])/g;  // 뒤에 숫자가 오지 않는 쌍점
+    const generalColonPattern = /:(?![0-9])/g;
     let colonMatch;
     while ((colonMatch = generalColonPattern.exec(text)) !== null) {
         const nextChar = text.charAt(colonMatch.index + 1);
 
-        // 쌍점 뒤에 공백이 없고 문자가 바로 오는 경우만 오류
         if (nextChar && nextChar !== ' ' && nextChar !== '\n' && nextChar !== '\t') {
             issues.push({
                 id: 'colon-spacing-' + colonMatch.index,
@@ -939,7 +946,7 @@ function generateCorrectedText() {
         if (issue.original && issue.suggestion && 
             issue.original !== '없음' && issue.original !== '현재 형식' &&
             !issue.suggestion.includes('확인 필요') &&
-            !issue.suggestion.includes('순차적') &&
+            !issue.suggestion.includes('상위 단계') &&
             !issue.suggestion.includes('분리')) {
             corrected = corrected.replace(issue.original, issue.suggestion);
         }
@@ -1091,7 +1098,7 @@ function createIssueHTML(issue) {
                 </div>
             ` : ''}
             <div class="issue-actions">
-                ${issue.suggestion && !issue.suggestion.includes('확인 필요') && !issue.suggestion.includes('순차적') && !issue.suggestion.includes('분리') ? `
+                ${issue.suggestion && !issue.suggestion.includes('확인 필요') && !issue.suggestion.includes('상위 단계') && !issue.suggestion.includes('분리') ? `
                     <button class="btn btn--primary btn--xs" onclick="applySingleCorrection('${issue.id}')">
                         적용
                     </button>
