@@ -1,4 +1,4 @@
-// 공문서 검증 및 교정 프로그램 JavaScript - 날짜 형식 정확히 수정
+// 공문서 검증 및 교정 프로그램 - 완전히 수정된 버전
 
 // 문서 유형 설정
 let documentType = 'external';
@@ -19,47 +19,7 @@ const validationRules = {
     }
 };
 
-// 숫자를 한글로 변환하는 함수
-function numberToKorean(num) {
-    const units = ['', '십', '백', '천', '만', '십만', '백만', '천만', '억'];
-    const digits = ['', '일', '이', '삼', '사', '오', '육', '칠', '팔', '구'];
-
-    if (num === 0) return '영';
-
-    let result = '';
-
-    if (num < 10) {
-        return digits[num];
-    } else if (num < 100) {
-        let tens = Math.floor(num / 10);
-        let ones = num % 10;
-        result = (tens === 1 ? '십' : digits[tens] + '십');
-        if (ones > 0) result += digits[ones];
-        return result;
-    } else if (num < 1000) {
-        let hundreds = Math.floor(num / 100);
-        let remainder = num % 100;
-        result = digits[hundreds] + '백';
-        if (remainder > 0) result += numberToKorean(remainder);
-        return result;
-    } else if (num < 10000) {
-        let thousands = Math.floor(num / 1000);
-        let remainder = num % 1000;
-        result = digits[thousands] + '천';
-        if (remainder > 0) result += numberToKorean(remainder);
-        return result;
-    } else if (num < 100000000) {
-        let tenThousands = Math.floor(num / 10000);
-        let remainder = num % 10000;
-        result = numberToKorean(tenThousands) + '만';
-        if (remainder > 0) result += numberToKorean(remainder);
-        return result;
-    }
-
-    return '복잡한수';
-}
-
-// 맞춤법 및 띄어쓰기 오류 목록 - 대폭 보강
+// 맞춤법 및 띄어쓰기 오류 목록
 const commonMistakes = [
     // 맞춤법 오류들
     { wrong: "워크샵", correct: "워크숍", type: "spelling" },
@@ -67,139 +27,52 @@ const commonMistakes = [
     { wrong: "리더쉽", correct: "리더십", type: "spelling" },
     { wrong: "윈도우", correct: "윈도", type: "spelling" },
     { wrong: "사료됨", correct: "생각함", type: "spelling" },
-    { wrong: "목표 년도", correct: "목표 연도", type: "spelling" },
     { wrong: "몇일", correct: "며칠", type: "spelling" },
     { wrong: "몇 일", correct: "며칠", type: "spelling" },
-    { wrong: "익일", correct: "다음 날", type: "spelling" },
-    { wrong: "제작년", correct: "재작년", type: "spelling" },
 
     // 조사/어미 띄어쓰기 오류들
     { wrong: "계획인 바", correct: "계획인바", type: "spacing" },
     { wrong: "요청한 바", correct: "요청한바", type: "spacing" },
-    { wrong: "알려진 바", correct: "알려진바", type: "spacing" },
-    { wrong: "승인한 바", correct: "승인한바", type: "spacing" },
-    { wrong: "검토한 바", correct: "검토한바", type: "spacing" },
-    { wrong: "관련된 바", correct: "관련된바", type: "spacing" },
-
-    // 서술어 띄어쓰기 오류들
     { wrong: "문서 입니다", correct: "문서입니다", type: "spacing" },
     { wrong: "요청 드립니다", correct: "요청드립니다", type: "spacing" },
     { wrong: "협조 바랍니다", correct: "협조바랍니다", type: "spacing" },
-    { wrong: "검토 하시기", correct: "검토하시기", type: "spacing" },
-    { wrong: "참고 하시기", correct: "참고하시기", type: "spacing" },
-    { wrong: "회신 하여", correct: "회신하여", type: "spacing" },
-    { wrong: "통보 하오니", correct: "통보하오니", type: "spacing" },
-    { wrong: "실시 하고자", correct: "실시하고자", type: "spacing" },
 
     // 접두사 띄어쓰기 오류들
     { wrong: "재 교육", correct: "재교육", type: "spacing" },
     { wrong: "재 검토", correct: "재검토", type: "spacing" },
-    { wrong: "재 승인", correct: "재승인", type: "spacing" },
-    { wrong: "재 작성", correct: "재작성", type: "spacing" },
-    { wrong: "신 설립", correct: "신설립", type: "spacing" },
-    { wrong: "추 가입", correct: "추가입", type: "spacing" },
-
-    // 연결부사 띄어쓰기 오류들
     { wrong: "또 한", correct: "또한", type: "spacing" },
-    { wrong: "그러므 로", correct: "그러므로", type: "spacing" },
-    { wrong: "따라 서", correct: "따라서", type: "spacing" },
-    { wrong: "그런 데", correct: "그런데", type: "spacing" },
-    { wrong: "한편 으로", correct: "한편으로", type: "spacing" },
-    { wrong: "더불어 서", correct: "더불어서", type: "spacing" },
 
     // 시간 관련 띄어쓰기 오류들
     { wrong: "계약시", correct: "계약 시", type: "spacing" },
     { wrong: "승인시", correct: "승인 시", type: "spacing" },
-    { wrong: "완료시", correct: "완료 시", type: "spacing" },
-    { wrong: "제출시", correct: "제출 시", type: "spacing" },
-    { wrong: "개시시", correct: "개시 시", type: "spacing" },
     { wrong: "승인후", correct: "승인 후", type: "spacing" },
     { wrong: "완료후", correct: "완료 후", type: "spacing" },
-    { wrong: "검토후", correct: "검토 후", type: "spacing" },
-    { wrong: "계약 체결후", correct: "계약 체결 후", type: "spacing" },
     { wrong: "기한내", correct: "기한 내", type: "spacing" },
-    { wrong: "범위내", correct: "범위 내", type: "spacing" },
-    { wrong: "법령내", correct: "법령 내", type: "spacing" },
-
-    // 동작 관련 띄어쓰기 오류들
-    { wrong: "개시 할", correct: "개시할", type: "spacing" },
-    { wrong: "진행 할", correct: "진행할", type: "spacing" },
-    { wrong: "실시 할", correct: "실시할", type: "spacing" },
-    { wrong: "시행 할", correct: "시행할", type: "spacing" },
-    { wrong: "추진 할", correct: "추진할", type: "spacing" },
-    { wrong: "작성 할", correct: "작성할", type: "spacing" },
-    { wrong: "제출 할", correct: "제출할", type: "spacing" },
-    { wrong: "검토 할", correct: "검토할", type: "spacing" },
-
-    // 조 관련 띄어쓰기 오류들
-    { wrong: "제 1조", correct: "제1조", type: "spacing" },
-    { wrong: "제 2조", correct: "제2조", type: "spacing" },
-    { wrong: "제 3조", correct: "제3조", type: "spacing" },
-    { wrong: "1 조", correct: "제1조", type: "spacing" },
-    { wrong: "2 조", correct: "제2조", type: "spacing" },
 
     // 단위/숫자 띄어쓰기 오류들
     { wrong: "1 개", correct: "1개", type: "spacing" },
     { wrong: "2 개", correct: "2개", type: "spacing" },
-    { wrong: "3 개", correct: "3개", type: "spacing" },
     { wrong: "1 부", correct: "1부", type: "spacing" },
     { wrong: "2 부", correct: "2부", type: "spacing" },
     { wrong: "1 명", correct: "1명", type: "spacing" },
     { wrong: "2 명", correct: "2명", type: "spacing" },
-    { wrong: "1 건", correct: "1건", type: "spacing" },
-    { wrong: "2 건", correct: "2건", type: "spacing" },
-    { wrong: "1 회", correct: "1회", type: "spacing" },
-    { wrong: "2 회", correct: "2회", type: "spacing" },
-    { wrong: "1 차", correct: "1차", type: "spacing" },
-    { wrong: "2 차", correct: "2차", type: "spacing" },
-
-    // 학급/학년 관련 띄어쓰기 오류들
     { wrong: "1 학년", correct: "1학년", type: "spacing" },
     { wrong: "2 학년", correct: "2학년", type: "spacing" },
-    { wrong: "3 학년", correct: "3학년", type: "spacing" },
-    { wrong: "1 반", correct: "1반", type: "spacing" },
-    { wrong: "2 반", correct: "2반", type: "spacing" },
     { wrong: "고 1", correct: "고1", type: "spacing" },
     { wrong: "고 2", correct: "고2", type: "spacing" },
-    { wrong: "고 3", correct: "고3", type: "spacing" },
+    { wrong: "제 1조", correct: "제1조", type: "spacing" },
+    { wrong: "제 2조", correct: "제2조", type: "spacing" },
 
     // 공문서 특수 표현 띄어쓰기 오류들
     { wrong: "관련 하여", correct: "관련하여", type: "spacing" },
     { wrong: "대하 여", correct: "대하여", type: "spacing" },
     { wrong: "의하 여", correct: "의하여", type: "spacing" },
     { wrong: "따르 면", correct: "따르면", type: "spacing" },
-    { wrong: "관하 여", correct: "관하여", type: "spacing" },
-    { wrong: "해당 하는", correct: "해당하는", type: "spacing" },
-    { wrong: "필요 하다", correct: "필요하다", type: "spacing" },
-    { wrong: "중요 하다", correct: "중요하다", type: "spacing" },
 
     // 존칭 관련 오류들
     { wrong: "교육장님", correct: "교육장", type: "spelling" },
-    { wrong: "교장선생님", correct: "교장", type: "spelling" },
     { wrong: "교장님", correct: "교장", type: "spelling" },
-    { wrong: "부장님", correct: "부장", type: "spelling" },
-
-    // 시간 띄어쓰기 특별 검사 (24시간제 권장)
-    { wrong: "16시30분", correct: "16:30", type: "spacing" },
-    { wrong: "14시15분", correct: "14:15", type: "spacing" },
-    { wrong: "09시00분", correct: "09:00", type: "spacing" },
-    { wrong: "10시30분", correct: "10:30", type: "spacing" },
-
-    // 기관명 오류들
-    { wrong: "의정부교육청", correct: "경기도의정부교육지원청", type: "spelling" },
-    { wrong: "의정부교육지원청", correct: "경기도의정부교육지원청", type: "spelling" },
-
-    // 학교 관련 특수 표현들
-    { wrong: "학급 수", correct: "학급수", type: "spacing" },
-    { wrong: "학생 수", correct: "학생수", type: "spacing" },
-    { wrong: "교원 수", correct: "교원수", type: "spacing" },
-    { wrong: "교실 수", correct: "교실수", type: "spacing" },
-
-    // 기타 공문서 자주 쓰이는 표현들
-    { wrong: "이에 따라", correct: "이에따라", type: "spacing" },
-    { wrong: "그에 따라", correct: "그에따라", type: "spacing" },
-    { wrong: "법에 따라", correct: "법에따라", type: "spacing" },
-    { wrong: "규정에 따라", correct: "규정에따라", type: "spacing" }
+    { wrong: "부장님", correct: "부장", type: "spelling" }
 ];
 
 // 예시 문서
@@ -214,12 +87,7 @@ const sampleDocument = `수신 ○○○기관장
 1. 협조사항
 
 가. 관련 자료 제출
-
 나. 담당자 지정
-
-1) 업무 담당자
-
-2) 연락처
 
 2. 협조기한: 2024. 12. 31.(화) 14:00까지
 
@@ -228,9 +96,7 @@ const sampleDocument = `수신 ○○○기관장
 4. 회의 개최
 
 가. 일시: 2024. 12. 15.(일) 09:00~13:30
-
 나. 장소: 경기도의정부교육지원청 3층 회의실
-
 다. 대상: 교육장, 교장 등 관계자
 
 붙임  1. ○○○ 계획서 1부.
@@ -328,14 +194,16 @@ function updateCharCount() {
     elements.charCount.textContent = count;
 
     const charCountElement = elements.charCount.parentElement;
-    charCountElement.classList.remove('warning', 'error');
+    if (charCountElement) {
+        charCountElement.classList.remove('warning', 'error');
 
-    if (count > maxCount * 0.9) {
-        charCountElement.classList.add('warning');
-    }
+        if (count > maxCount * 0.9) {
+            charCountElement.classList.add('warning');
+        }
 
-    if (count >= maxCount) {
-        charCountElement.classList.add('error');
+        if (count >= maxCount) {
+            charCountElement.classList.add('error');
+        }
     }
 }
 
@@ -387,14 +255,10 @@ async function performValidation(text) {
     };
 
     const steps = [
-        { name: '문서 구조 및 항목 기호 검사', progress: 12, fn: () => checkDocumentStructure(text) },
-        { name: '금액 표기법 검사', progress: 24, fn: () => checkMoneyFormat(text) },
-        { name: '날짜/시간 표기법 검사', progress: 36, fn: () => checkDateTimeFormat(text) },
-        { name: '붙임 및 관련 표기법 검사', progress: 48, fn: () => checkAttachmentFormat(text) },
-        { name: '맞춤법 및 띄어쓰기 검사', progress: 60, fn: () => checkSpellingAndSpacing(text) },
-        { name: '고급 띄어쓰기 규칙 검사', progress: 72, fn: () => checkAdvancedSpacing(text) },
-        { name: '쌍점 및 문장부호 검사', progress: 84, fn: () => checkPunctuationFormat(text) },
-        { name: '끝 표시법 검사', progress: 92, fn: () => checkEndingFormat(text) },
+        { name: '날짜/시간 표기법 검사', progress: 20, fn: () => checkDateTimeFormat(text) },
+        { name: '맞춤법 및 띄어쓰기 검사', progress: 40, fn: () => checkSpellingAndSpacing(text) },
+        { name: '문서 구조 검사', progress: 60, fn: () => checkDocumentStructure(text) },
+        { name: '붙임 표기법 검사', progress: 80, fn: () => checkAttachmentFormat(text) },
         { name: '종합 검토', progress: 100, fn: () => generateCorrectedText() }
     ];
 
@@ -419,257 +283,191 @@ function updateProgress(progress, text) {
     }
 }
 
-// 문서 구조 및 항목 기호 검사
-function checkDocumentStructure(text) {
-    const issues = [];
-
-    // 항목 기호 뒤 띄어쓰기 검사
-    const lines = text.split('\n');
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-
-        // 각 항목 기호 패턴 확인
-        const patterns = [
-            /^(\s*\d+\.)([^\s])/,  // 1.
-            /^(\s*[가나다라마바사아자차카타파하]\.)([^\s])/,  // 가.
-            /^(\s*\d+\))([^\s])/,  // 1)
-            /^(\s*[가나다라마바사아자차카타파하]\))([^\s])/,  // 가)
-            /^(\s*\(\d+\))([^\s])/,  // (1)
-            /^(\s*\([가나다라마바사아자차카타파하]\))([^\s])/ // (가)
-        ];
-
-        for (const pattern of patterns) {
-            const match = pattern.exec(line);
-            if (match) {
-                issues.push({
-                    id: 'item-no-space-' + i,
-                    type: 'error',
-                    title: '항목 기호 띄어쓰기 오류',
-                    description: '항목 기호 뒤에 한 칸 띄어써야 합니다.',
-                    position: text.indexOf(line),
-                    original: match[1],
-                    suggestion: match[1] + ' ',
-                    rule: '공문서 작성 편람 - 항목 표시법'
-                });
-            }
-        }
-    }
-
-    currentValidationResults.errors.push(...issues.filter(i => i.type === 'error'));
-    currentValidationResults.warnings.push(...issues.filter(i => i.type === 'warning'));
-}
-
-// 금액 표기법 검사
-function checkMoneyFormat(text) {
-    const issues = [];
-
-    // 괄호 없는 금액
-    const noBracketPattern = /(금|총)\d{1,3}(,\d{3})*원(?!\()/g;
-    let match;
-    while ((match = noBracketPattern.exec(text)) !== null) {
-        const amount = match[0];
-        const numStr = amount.replace(/[금총원,]/g, '');
-        const num = parseInt(numStr);
-        const koreanNum = numberToKorean(num);
-
-        issues.push({
-            id: 'money-no-bracket-' + match.index,
-            type: 'error',
-            title: '금액 표기법 오류',
-            description: '금액 뒤에 괄호 안에 한글 표기가 필요합니다.',
-            position: match.index,
-            original: amount,
-            suggestion: amount + '(금' + koreanNum + '원)',
-            rule: '행정업무운영 편람 - 금액 표기법'
-        });
-    }
-
-    currentValidationResults.errors.push(...issues.filter(i => i.type === 'error'));
-    currentValidationResults.warnings.push(...issues.filter(i => i.type === 'warning'));
-}
-
-// 날짜/시간 표기법 검사 - 정확한 날짜 형식으로 수정
+// 날짜/시간 표기법 검사 - 단순하고 확실한 버전
 function checkDateTimeFormat(text) {
     const issues = [];
 
-    // 1. 잘못된 날짜 형식 검사 - 년월일 한국어 표기
-    const koreanDatePattern = /\d{4}년\s*\d{1,2}월\s*\d{1,2}일/g;
-    let koreanMatch;
-    while ((koreanMatch = koreanDatePattern.exec(text)) !== null) {
-        // 2025년 9월 10일 → 2025. 9. 10.
-        const corrected = koreanMatch[0].replace(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/, '$1. $2. $3.');
+    // 1. 년월일 한국어 표기 검사
+    const koreanDateRegex = /\d{4}년\s*\d{1,2}월\s*\d{1,2}일/g;
+    let match;
+    while ((match = koreanDateRegex.exec(text)) !== null) {
+        const original = match[0];
+        const corrected = original.replace(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/, '$1. $2. $3.');
+
         issues.push({
-            id: 'korean-date-format-' + koreanMatch.index,
+            id: 'korean-date-' + match.index,
             type: 'error',
             title: '잘못된 날짜 표기법',
             description: '날짜는 "2025. 9. 10." 형식으로 표기해야 합니다.',
-            position: koreanMatch.index,
-            original: koreanMatch[0],
+            position: match.index,
+            original: original,
             suggestion: corrected,
-            rule: '공문서 작성 편람 - 날짜 표기법'
-        });
-    }
-
-    // 2. 하이픈 날짜 형식 검사
-    const hyphenDatePattern = /\d{4}-\d{1,2}-\d{1,2}/g;
-    let hyphenMatch;
-    while ((hyphenMatch = hyphenDatePattern.exec(text)) !== null) {
-        // 2025-09-10 → 2025. 9. 10.
-        const corrected = hyphenMatch[0].replace(/(\d{4})-(0?)(\d{1,2})-(0?)(\d{1,2})/, '$1. $3. $5.');
-        issues.push({
-            id: 'hyphen-date-format-' + hyphenMatch.index,
-            type: 'error',
-            title: '잘못된 날짜 표기법',
-            description: '날짜는 "2025. 9. 10." 형식으로 표기해야 합니다.',
-            position: hyphenMatch.index,
-            original: hyphenMatch[0],
-            suggestion: corrected,
-            rule: '공문서 작성 편람 - 날짜 표기법'
-        });
-    }
-
-    // 3. 잘못된 온점 날짜 형식 검사 (0이 붙거나 띄어쓰기가 없는 경우)
-    const wrongDotDatePattern = /\d{4}\.(0?\d{1,2})\.(0?\d{1,2})\./g;
-    let dotMatch;
-    while ((dotMatch = wrongDotDatePattern.exec(text)) !== null) {
-        const fullMatch = dotMatch[0];  // 전체 매치 (예: 2025.09.10.)
-        const month = dotMatch[1];      // 월 부분 (예: 09 또는 9)
-        const day = dotMatch[2];        // 일 부분 (예: 10)
-
-        // 올바른 형식인지 확인: 2025. 9. 10. (띄어쓰기 있고, 0이 없음)
-        const correctFormat = /^\d{4}\. \d{1,2}\. \d{1,2}\.$/.test(fullMatch);
-        const hasLeadingZero = /^0\d/.test(month) || /^0\d/.test(day);
-        const hasSpacing = /\d{4}\. \d{1,2}\. \d{1,2}\./.test(fullMatch);
-
-        if (!correctFormat || hasLeadingZero || !hasSpacing) {
-            // 올바른 형식으로 변환
-            const year = fullMatch.substring(0, 4);
-            const cleanMonth = month.replace(/^0+/, '') || '0';  // 앞의 0 제거
-            const cleanDay = day.replace(/^0+/, '') || '0';      // 앞의 0 제거
-            const corrected = `${year}. ${cleanMonth}. ${cleanDay}.`;
-
-            let errorDescription = '';
-            if (hasLeadingZero) {
-                errorDescription = '월과 일이 한자리일 때는 앞에 0을 붙이지 않습니다.';
-            } else if (!hasSpacing) {
-                errorDescription = '온점 뒤에 한 칸 띄어써야 합니다.';
-            } else {
-                errorDescription = '올바른 날짜 형식은 "2025. 9. 10." 입니다.';
-            }
-
-            issues.push({
-                id: 'wrong-dot-date-format-' + dotMatch.index,
-                type: 'error',
-                title: '잘못된 날짜 표기법',
-                description: errorDescription,
-                position: dotMatch.index,
-                original: fullMatch,
-                suggestion: corrected,
-                rule: '공문서 작성 편람 - 날짜 표기법'
-            });
-        }
-    }
-
-    // 4. 오전/오후 표기 검사
-    const ampmPattern = /(오전|오후)\s*\d{1,2}시(\s*\d{1,2}분)?/g;
-    let ampmMatch;
-    while ((ampmMatch = ampmPattern.exec(text)) !== null) {
-        issues.push({
-            id: 'ampm-time-error-' + ampmMatch.index,
-            type: 'error',
-            title: '잘못된 시간 표기법',
-            description: '24시각제를 사용하여 00:00 형식으로 표기해야 합니다.',
-            position: ampmMatch.index,
-            original: ampmMatch[0],
-            suggestion: '24시각제 형식 (예: 14:30)',
             rule: '공문서 작성 편람'
         });
     }
 
-    // 5. "16시 30분" 형식 검사
-    const koreanTimePattern = /\d{1,2}시(\s+\d{1,2}분)?/g;
-    let koreanTimeMatch;
-    while ((koreanTimeMatch = koreanTimePattern.exec(text)) !== null) {
-        const timeText = koreanTimeMatch[0];
-        const hourMatch = timeText.match(/^(\d{1,2})시/);
+    // 2. 하이픈 날짜 검사
+    const hyphenDateRegex = /\d{4}-\d{2}-\d{2}/g;
+    while ((match = hyphenDateRegex.exec(text)) !== null) {
+        const original = match[0];
+        const parts = original.split('-');
+        const year = parts[0];
+        const month = parseInt(parts[1]).toString(); // 앞자리 0 제거
+        const day = parseInt(parts[2]).toString();   // 앞자리 0 제거
+        const corrected = year + '. ' + month + '. ' + day + '.';
 
-        if (hourMatch) {
-            const hour = parseInt(hourMatch[1]);
-            if (hour >= 0 && hour <= 23) {
-                let suggestion = '';
+        issues.push({
+            id: 'hyphen-date-' + match.index,
+            type: 'error',
+            title: '잘못된 날짜 표기법',
+            description: '날짜는 "2025. 9. 10." 형식으로 표기해야 합니다.',
+            position: match.index,
+            original: original,
+            suggestion: corrected,
+            rule: '공문서 작성 편람'
+        });
+    }
 
-                const minuteMatch = timeText.match(/시\s+(\d{1,2})분/);
-                if (minuteMatch) {
-                    const minute = parseInt(minuteMatch[1]);
-                    suggestion = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-                } else {
-                    suggestion = `${hour.toString().padStart(2, '0')}:00`;
-                }
+    // 3. 잘못된 온점 날짜 검사 (띄어쓰기 없거나 앞자리 0이 있는 경우)
+    const dotDateRegex = /\d{4}\.\d{1,2}\.\d{1,2}\./g;
+    while ((match = dotDateRegex.exec(text)) !== null) {
+        const original = match[0];
+        // 올바른 형식인지 확인 (띄어쓰기가 있는지)
+        const hasSpaces = /\d{4}\. \d{1,2}\. \d{1,2}\./.test(original);
 
-                issues.push({
-                    id: 'korean-time-format-' + koreanTimeMatch.index,
-                    type: 'error',
-                    title: '잘못된 시간 표기법',
-                    description: '시간은 24시각제로 "14:30" 형식으로 표기해야 합니다.',
-                    position: koreanTimeMatch.index,
-                    original: timeText,
-                    suggestion: suggestion,
-                    rule: '공문서 작성 편람 - 시간 표기법'
-                });
-            }
+        if (!hasSpaces) {
+            // 띄어쓰기 추가
+            const corrected = original.replace(/(\d{4})\.(\d{1,2})\.(\d{1,2})\./, '$1. $2. $3.');
+
+            issues.push({
+                id: 'dot-spacing-' + match.index,
+                type: 'error',
+                title: '날짜 띄어쓰기 오류',
+                description: '온점 뒤에 한 칸 띄어써야 합니다.',
+                position: match.index,
+                original: original,
+                suggestion: corrected,
+                rule: '공문서 작성 편람'
+            });
         }
     }
 
-    currentValidationResults.errors.push(...issues.filter(i => i.type === 'error'));
-    currentValidationResults.warnings.push(...issues.filter(i => i.type === 'warning'));
+    // 4. 앞자리 0이 있는 날짜 검사
+    const zeroDateRegex = /\d{4}\. 0(\d)\. /g;
+    while ((match = zeroDateRegex.exec(text)) !== null) {
+        const original = match[0];
+        const corrected = original.replace('0' + match[1], match[1]);
+
+        issues.push({
+            id: 'zero-date-' + match.index,
+            type: 'error',
+            title: '날짜 앞자리 0 오류',
+            description: '월과 일이 한자리일 때는 앞에 0을 붙이지 않습니다.',
+            position: match.index,
+            original: original,
+            suggestion: corrected,
+            rule: '공문서 작성 편람'
+        });
+    }
+
+    // 5. 시간 표기 검사 - 16시 30분
+    const koreanTimeRegex = /\d{1,2}시\s*\d{1,2}분/g;
+    while ((match = koreanTimeRegex.exec(text)) !== null) {
+        const original = match[0];
+        const timeMatch = original.match(/(\d{1,2})시\s*(\d{1,2})분/);
+        if (timeMatch) {
+            const hour = timeMatch[1].padStart(2, '0');
+            const minute = timeMatch[2].padStart(2, '0');
+            const corrected = hour + ':' + minute;
+
+            issues.push({
+                id: 'korean-time-' + match.index,
+                type: 'error',
+                title: '잘못된 시간 표기법',
+                description: '시간은 "16:30" 형식으로 표기해야 합니다.',
+                position: match.index,
+                original: original,
+                suggestion: corrected,
+                rule: '공문서 작성 편람'
+            });
+        }
+    }
+
+    // 6. 시간만 있는 경우 - 16시
+    const koreanHourRegex = /\d{1,2}시(?!\s*\d)/g;
+    while ((match = koreanHourRegex.exec(text)) !== null) {
+        const original = match[0];
+        const hourMatch = original.match(/(\d{1,2})시/);
+        if (hourMatch) {
+            const hour = hourMatch[1].padStart(2, '0');
+            const corrected = hour + ':00';
+
+            issues.push({
+                id: 'korean-hour-' + match.index,
+                type: 'error',
+                title: '잘못된 시간 표기법',
+                description: '시간은 "16:00" 형식으로 표기해야 합니다.',
+                position: match.index,
+                original: original,
+                suggestion: corrected,
+                rule: '공문서 작성 편람'
+            });
+        }
+    }
+
+    currentValidationResults.errors.push(...issues);
 }
 
-// 붙임 및 관련 표기법 검사 (수정된 로직)
+// 문서 구조 검사
+function checkDocumentStructure(text) {
+    const issues = [];
+
+    // 끝 표시법 검사
+    const trimmedText = text.trim();
+    if (!trimmedText.endsWith('.  끝.')) {
+        issues.push({
+            id: 'ending-format',
+            type: 'error',
+            title: '끝 표시법 오류',
+            description: '본문 마지막에 "마침표 + 2칸 띄어쓰기 + 끝."을 표시해야 합니다.',
+            position: text.length - 10,
+            original: '현재 형식',
+            suggestion: '.  끝.',
+            rule: '공문서 작성 편람'
+        });
+    }
+
+    currentValidationResults.errors.push(...issues);
+}
+
+// 붙임 표기법 검사
 function checkAttachmentFormat(text) {
     const issues = [];
 
-    // 붙임 앞 띄어쓰기 검사 - 줄 시작에서만
     const lines = text.split('\n');
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
 
-        // 줄이 공백으로 시작하고 붙임이 나오는 경우만 오류
-        if (/^\s+붙임/.test(line)) {
-            issues.push({
-                id: 'attachment-space-' + i,
-                type: 'error',
-                title: '붙임 앞 띄어쓰기 오류',
-                description: '붙임은 줄 시작에서 띄어쓰기 없이 시작해야 합니다.',
-                position: text.indexOf(line),
-                original: line.match(/^(\s+붙임)/)[0],
-                suggestion: '붙임',
-                rule: '공문서 작성 편람 - 붙임 표기법'
-            });
-        }
-
-        // 붙임 뒤 띄어쓰기 검사 - 정확히 2칸
-        const attachmentMatch = /^붙임(\s*)(.+)/.exec(line);
-        if (attachmentMatch) {
-            const spaces = attachmentMatch[1];
-            const followingText = attachmentMatch[2];
-
-            if (followingText && spaces.length !== 2) {
+        // 붙임으로 시작하는 라인 검사
+        if (line.startsWith('붙임')) {
+            // 붙임 뒤 띄어쓰기 검사 - 정확히 2칸이어야 함
+            const spaceMatch = line.match(/^붙임(\s*)/);
+            if (spaceMatch && spaceMatch[1].length !== 2) {
                 issues.push({
-                    id: 'attachment-after-space-' + i,
+                    id: 'attachment-spacing-' + i,
                     type: 'error',
-                    title: '붙임 뒤 띄어쓰기 오류',
+                    title: '붙임 띄어쓰기 오류',
                     description: '붙임 뒤에 정확히 2칸 띄어써야 합니다.',
                     position: text.indexOf(line),
-                    original: '붙임' + spaces,
+                    original: '붙임' + spaceMatch[1],
                     suggestion: '붙임  ',
-                    rule: '공문서 작성 편람 - 붙임 표기법'
+                    rule: '공문서 작성 편람'
                 });
             }
         }
     }
 
-    currentValidationResults.errors.push(...issues.filter(i => i.type === 'error'));
-    currentValidationResults.warnings.push(...issues.filter(i => i.type === 'warning'));
+    currentValidationResults.errors.push(...issues);
 }
 
 // 맞춤법 및 띄어쓰기 검사
@@ -677,30 +475,19 @@ function checkSpellingAndSpacing(text) {
     const issues = [];
 
     commonMistakes.forEach((mistake, index) => {
-        if (text.includes(mistake.wrong)) {
-            let position = 0;
-            let searchText = text;
-
-            while (true) {
-                const foundIndex = searchText.indexOf(mistake.wrong);
-                if (foundIndex === -1) break;
-
-                position += foundIndex;
-
-                issues.push({
-                    id: `mistake-${mistake.type}-${index}-${position}`,
-                    type: mistake.type === 'spelling' ? 'error' : 'warning',
-                    title: mistake.type === 'spelling' ? '맞춤법 오류' : '띄어쓰기 오류',
-                    description: `"${mistake.wrong}"는 "${mistake.correct}"로 수정해야 합니다.`,
-                    position: position,
-                    original: mistake.wrong,
-                    suggestion: mistake.correct,
-                    rule: mistake.type === 'spelling' ? '한글 맞춤법 규정' : '한글 띄어쓰기 규정'
-                });
-
-                position += mistake.wrong.length;
-                searchText = text.substring(position);
-            }
+        const regex = new RegExp(mistake.wrong.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+        let match;
+        while ((match = regex.exec(text)) !== null) {
+            issues.push({
+                id: mistake.type + '-' + index + '-' + match.index,
+                type: mistake.type === 'spelling' ? 'error' : 'warning',
+                title: mistake.type === 'spelling' ? '맞춤법 오류' : '띄어쓰기 오류',
+                description: '"' + mistake.wrong + '"는 "' + mistake.correct + '"로 수정해야 합니다.',
+                position: match.index,
+                original: mistake.wrong,
+                suggestion: mistake.correct,
+                rule: mistake.type === 'spelling' ? '한글 맞춤법 규정' : '한글 띄어쓰기 규정'
+            });
         }
     });
 
@@ -713,142 +500,6 @@ function checkSpellingAndSpacing(text) {
     });
 }
 
-// 고급 띄어쓰기 규칙 검사
-function checkAdvancedSpacing(text) {
-    const issues = [];
-
-    // 1. 단위명사 앞 숫자 띄어쓰기 검사
-    const unitSpacingPattern = /\d\s+(개|부|명|건|회|차|학년|반|조|항|호|번)/g;
-    let unitMatch;
-    while ((unitMatch = unitSpacingPattern.exec(text)) !== null) {
-        const corrected = unitMatch[0].replace(/\s+/, '');
-        issues.push({
-            id: 'unit-spacing-' + unitMatch.index,
-            type: 'warning',
-            title: '단위 띄어쓰기 오류',
-            description: '숫자와 단위 사이에는 띄어쓰지 않습니다.',
-            position: unitMatch.index,
-            original: unitMatch[0],
-            suggestion: corrected,
-            rule: '한글 띄어쓰기 규정'
-        });
-    }
-
-    // 2. 조사 띄어쓰기 검사
-    const josaSpacingPattern = /(\w)\s+(은|는|이|가|을|를|에|에서|로|와|과|의|도|만|까지|부터)/g;
-    let josaMatch;
-    while ((josaMatch = josaSpacingPattern.exec(text)) !== null) {
-        const corrected = josaMatch[0].replace(/\s+/, '');
-        issues.push({
-            id: 'josa-spacing-' + josaMatch.index,
-            type: 'warning',
-            title: '조사 띄어쓰기 오류',
-            description: '조사는 앞 단어에 붙여 씁니다.',
-            position: josaMatch.index,
-            original: josaMatch[0],
-            suggestion: corrected,
-            rule: '한글 띄어쓰기 규정 - 조사'
-        });
-    }
-
-    // 3. 보조용언 띄어쓰기 검사
-    const auxiliaryVerbPattern = /(\w)\s+(주다|드리다|보다|있다|없다|같다|싶다|하다)/g;
-    let auxMatch;
-    while ((auxMatch = auxiliaryVerbPattern.exec(text)) !== null) {
-        const word = auxMatch[2];
-        if (['주다', '드리다', '보다'].includes(word)) {
-            const corrected = auxMatch[0].replace(/\s+/, '');
-            issues.push({
-                id: 'auxiliary-verb-spacing-' + auxMatch.index,
-                type: 'warning',
-                title: '보조용언 띄어쓰기 검토',
-                description: '보조용언은 붙여 쓰는 것이 원칙입니다.',
-                position: auxMatch.index,
-                original: auxMatch[0],
-                suggestion: corrected,
-                rule: '한글 띄어쓰기 규정 - 보조용언'
-            });
-        }
-    }
-
-    currentValidationResults.warnings.push(...issues);
-}
-
-// 쌍점 및 문장부호 검사
-function checkPunctuationFormat(text) {
-    const issues = [];
-
-    // 쌍점 뒤 띄어쓰기 검사 (시간 표기 제외)
-    const generalColonPattern = /:(?![0-9])/g;
-    let match;
-    while ((match = generalColonPattern.exec(text)) !== null) {
-        const nextChar = text.charAt(match.index + 1);
-
-        if (nextChar && nextChar !== ' ' && nextChar !== '\n' && nextChar !== '\t') {
-            issues.push({
-                id: 'colon-spacing-' + match.index,
-                type: 'warning',
-                title: '쌍점 띄어쓰기 오류',
-                description: '쌍점(:) 뒤에 한 칸 띄어써야 합니다.',
-                position: match.index,
-                original: ':' + nextChar,
-                suggestion: ': ' + nextChar,
-                rule: '공문서 작성 편람 - 쌍점 표기법'
-            });
-        }
-    }
-
-    // 괄호 앞 불필요한 띄어쓰기
-    const bracketSpacePattern = /\s+\(/g;
-    let bracketMatch;
-    while ((bracketMatch = bracketSpacePattern.exec(text)) !== null) {
-        issues.push({
-            id: 'bracket-space-' + bracketMatch.index,
-            type: 'warning',
-            title: '괄호 앞 띄어쓰기 오류',
-            description: '괄호 앞에는 띄어쓰지 않습니다.',
-            position: bracketMatch.index,
-            original: bracketMatch[0] + '(',
-            suggestion: '(',
-            rule: '공문서 작성 편람'
-        });
-    }
-
-    currentValidationResults.warnings.push(...issues);
-}
-
-// 끝 표시법 검사
-function checkEndingFormat(text) {
-    const issues = [];
-    const trimmedText = text.trim();
-
-    if (!trimmedText.includes('끝.')) {
-        issues.push({
-            id: 'ending-missing',
-            type: 'error',
-            title: '끝 표시법 누락',
-            description: '본문 마지막에 "마침표 + 2칸 띄어쓰기 + 끝."을 표시해야 합니다.',
-            position: text.length,
-            original: '없음',
-            suggestion: '.  끝.',
-            rule: '공문서 작성 편람 - 끝 표시법'
-        });
-    } else if (!trimmedText.endsWith('.  끝.')) {
-        issues.push({
-            id: 'ending-format-wrong',
-            type: 'error',
-            title: '끝 표시법 오류',
-            description: '올바른 형식: "마침표 + 2칸 띄어쓰기 + 끝." 순서로 표기해야 합니다.',
-            position: trimmedText.lastIndexOf('끝.'),
-            original: '현재 형식',
-            suggestion: '.  끝.',
-            rule: '공문서 작성 편람 - 끝 표시법'
-        });
-    }
-
-    currentValidationResults.errors.push(...issues);
-}
-
 // 교정된 텍스트 생성
 function generateCorrectedText() {
     let corrected = currentValidationResults.originalText;
@@ -858,18 +509,21 @@ function generateCorrectedText() {
         ...currentValidationResults.warnings
     ];
 
+    // 위치 기준으로 역순 정렬
     allIssues.sort((a, b) => b.position - a.position);
 
     allIssues.forEach(issue => {
         if (issue.original && issue.suggestion && 
-            issue.original !== '없음' && issue.original !== '현재 형식' &&
-            !issue.suggestion.includes('확인 필요')) {
+            issue.original !== '현재 형식' && issue.original !== '없음') {
+            // 전체 텍스트에서 첫 번째 발견된 것만 교체
             corrected = corrected.replace(issue.original, issue.suggestion);
         }
     });
 
     // 끝 표시법 처리
-    if (!corrected.trim().endsWith('.  끝.')) {
+    const trimmed = corrected.trim();
+    if (!trimmed.endsWith('.  끝.')) {
+        // 기존 끝. 관련 표현 제거
         corrected = corrected.replace(/\.?\s*끝\.?\s*$/, '');
         corrected = corrected.trim() + '.  끝.';
     }
@@ -918,22 +572,19 @@ function updateSummaryStats(errorCount, warningCount, suggestionCount) {
 function updateValidationSummary() {
     if (!elements.validationSummary) return;
 
-    const { errors, warnings, suggestions } = currentValidationResults;
-    const totalIssues = errors.length + warnings.length + suggestions.length;
+    const { errors, warnings } = currentValidationResults;
 
     elements.validationSummary.classList.remove('has-errors', 'has-warnings', 'success');
 
     if (errors.length > 0) {
         elements.validationSummary.classList.add('has-errors');
-        elements.validationSummary.textContent = `${errors.length}개의 중요 오류가 발견되었습니다. 수정이 필요합니다.`;
+        elements.validationSummary.textContent = errors.length + '개의 중요 오류가 발견되었습니다.';
     } else if (warnings.length > 0) {
         elements.validationSummary.classList.add('has-warnings');
-        elements.validationSummary.textContent = `${warnings.length}개의 주의사항이 있습니다. 검토해보세요.`;
-    } else if (totalIssues === 0) {
+        elements.validationSummary.textContent = warnings.length + '개의 주의사항이 있습니다.';
+    } else {
         elements.validationSummary.classList.add('success');
         elements.validationSummary.textContent = '검증이 완료되었습니다. 오류가 발견되지 않았습니다.';
-    } else {
-        elements.validationSummary.textContent = `${suggestions.length}개의 개선 제안이 있습니다.`;
     }
 }
 
@@ -992,9 +643,9 @@ function showTabContent(tab) {
 
 // 이슈 HTML 생성
 function createIssueHTML(issue) {
-    const severityClass = getSeverityClass(issue.type);
-    const severityIcon = getSeverityIcon(issue.type);
-    const severityText = getSeverityText(issue.type);
+    const severityClass = issue.type === 'error' ? 'error' : 'warning';
+    const severityIcon = issue.type === 'error' ? '🔴' : '🟡';
+    const severityText = issue.type === 'error' ? '오류' : '주의';
 
     return `
         <div class="validation-issue validation-issue--${severityClass}">
@@ -1007,23 +658,18 @@ function createIssueHTML(issue) {
                 </div>
             </div>
             <p class="issue-description">${issue.description}</p>
-            ${issue.original && issue.suggestion && issue.original !== '없음' && issue.original !== '현재 형식' ? `
+            ${issue.original && issue.suggestion && issue.original !== '현재 형식' && issue.original !== '없음' ? `
                 <div class="issue-correction">
                     <span class="correction-wrong">${escapeHtml(issue.original)}</span>
                     <span class="correction-arrow">→</span>
                     <span class="correction-right">${escapeHtml(issue.suggestion)}</span>
                 </div>
-            ` : ''}
-            <div class="issue-actions">
-                ${issue.suggestion && issue.original !== '없음' && issue.original !== '현재 형식' && !issue.suggestion.includes('확인 필요') ? `
+                <div class="issue-actions">
                     <button class="btn btn--primary btn--xs" onclick="applySingleCorrection('${issue.id}')">
                         적용
                     </button>
-                ` : ''}
-                <button class="btn btn--secondary btn--xs" onclick="showIssueDetails('${issue.id}')">
-                    자세히
-                </button>
-            </div>
+                </div>
+            ` : ''}
         </div>
     `;
 }
@@ -1070,12 +716,7 @@ function resetValidationResults() {
     }
 
     if (elements.resultsContent) {
-        elements.resultsContent.innerHTML = 
-            '<div class="results-placeholder">' +
-                '<div class="placeholder-icon">🔍</div>' +
-                '<h3>검증 대기 중</h3>' +
-                '<p>공문서를 입력하고 검증을 시작해주세요.</p>' +
-            '</div>';
+        elements.resultsContent.innerHTML = '';
     }
 
     if (elements.correctedPreview) {
@@ -1107,29 +748,14 @@ function downloadDocument() {
     URL.revokeObjectURL(url);
 }
 
-// 단일 수정 적용 (수정된 로직)
+// 단일 수정 적용
 function applySingleCorrection(issueId) {
     const issue = findIssueById(issueId);
     if (!issue || !elements.documentInput) return;
 
     let currentText = elements.documentInput.value;
 
-    // 끝 표시법 처리
-    if (issue.id.includes('ending')) {
-        // 기존 끝. 제거
-        currentText = currentText.replace(/\.?\s*끝\.?\s*$/g, '');
-        currentText = currentText.trim() + '.  끝.';
-    }
-    // 괄호 앞 띄어쓰기 처리
-    else if (issue.id.includes('bracket-space')) {
-        currentText = currentText.replace(/\s+\(/g, '(');
-    }
-    // 붙임 앞 띄어쓰기 처리
-    else if (issue.id.includes('attachment-space')) {
-        currentText = currentText.replace(/^(\s+)붙임/gm, '붙임');
-    }
-    // 일반적인 교정
-    else if (issue.original && issue.suggestion) {
+    if (issue.original && issue.suggestion) {
         currentText = currentText.replace(issue.original, issue.suggestion);
     }
 
@@ -1139,33 +765,6 @@ function applySingleCorrection(issueId) {
 }
 
 // 유틸리티 함수들
-function getSeverityClass(type) {
-    switch (type) {
-        case 'error': return 'error';
-        case 'warning': return 'warning';
-        case 'suggestion': return 'info';
-        default: return 'info';
-    }
-}
-
-function getSeverityIcon(type) {
-    switch (type) {
-        case 'error': return '🔴';
-        case 'warning': return '🟡';
-        case 'suggestion': return '🔵';
-        default: return '🔵';
-    }
-}
-
-function getSeverityText(type) {
-    switch (type) {
-        case 'error': return '오류';
-        case 'warning': return '주의';
-        case 'suggestion': return '제안';
-        default: return '정보';
-    }
-}
-
 function findIssueById(id) {
     const allIssues = [
         ...currentValidationResults.errors,
@@ -1186,11 +785,18 @@ function showMessage(message, type) {
     const toast = document.createElement('div');
     toast.className = 'status status--' + type;
     toast.textContent = message;
-    toast.style.position = 'fixed';
-    toast.style.top = '20px';
-    toast.style.right = '20px';
-    toast.style.zIndex = '9999';
-    toast.style.minWidth = '300px';
+    toast.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;min-width:300px;padding:12px;border-radius:4px;color:white;font-weight:bold;';
+
+    if (type === 'success') {
+        toast.style.backgroundColor = '#28a745';
+    } else if (type === 'error') {
+        toast.style.backgroundColor = '#dc3545';
+    } else if (type === 'warning') {
+        toast.style.backgroundColor = '#ffc107';
+        toast.style.color = '#212529';
+    } else {
+        toast.style.backgroundColor = '#17a2b8';
+    }
 
     document.body.appendChild(toast);
 
@@ -1199,13 +805,6 @@ function showMessage(message, type) {
             document.body.removeChild(toast);
         }
     }, 3000);
-}
-
-function showIssueDetails(issueId) {
-    const issue = findIssueById(issueId);
-    if (!issue) return;
-
-    alert('상세 정보:\n\n제목: ' + issue.title + '\n설명: ' + issue.description + '\n규정: ' + issue.rule);
 }
 
 // DOM이 로드되면 초기화
