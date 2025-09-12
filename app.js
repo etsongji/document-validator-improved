@@ -360,22 +360,26 @@ function updateProgress(progress, text) {
     }
 }
 
-// 날짜/시간 표기법 검사
+// 날짜/시간 표기법 검사 - 완전히 수정된 정규식
 function checkDateTimeFormat(text) {
     const issues = [];
 
-    // 1. 년월일 한국어 표기 검사
+    console.log('=== 날짜 표기법 검사 시작 ===');
+    console.log('검사 대상 텍스트 길이:', text.length);
+
+    // 1. 년월일 한국어 표기 검사 (2025년 9월 2일)
     const koreanDateRegex = /\d{4}년\s*\d{1,2}월\s*\d{1,2}일/g;
     let match;
     while ((match = koreanDateRegex.exec(text)) !== null) {
         const original = match[0];
         const corrected = original.replace(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/, '$1. $2. $3.');
+        console.log('한국어 날짜 발견:', original, '→', corrected);
 
         issues.push({
             id: 'korean-date-' + match.index,
             type: 'error',
             title: '잘못된 날짜 표기법',
-            description: '날짜는 "2025. 9. 10." 형식으로 표기해야 합니다.',
+            description: '날짜는 "2025. 9. 2." 형식으로 표기해야 합니다.',
             position: match.index,
             original: original,
             suggestion: corrected,
@@ -383,21 +387,22 @@ function checkDateTimeFormat(text) {
         });
     }
 
-    // 2. 하이픈 날짜 검사
+    // 2. 하이픈 날짜 검사 (2025-09-02)
     const hyphenDateRegex = /\d{4}-\d{2}-\d{2}/g;
     while ((match = hyphenDateRegex.exec(text)) !== null) {
         const original = match[0];
         const parts = original.split('-');
         const year = parts[0];
-        const month = parseInt(parts[1]).toString();
-        const day = parseInt(parts[2]).toString();
+        const month = parseInt(parts[1]).toString(); // 09 → 9
+        const day = parseInt(parts[2]).toString();   // 02 → 2
         const corrected = year + '. ' + month + '. ' + day + '.';
+        console.log('하이픈 날짜 발견:', original, '→', corrected);
 
         issues.push({
             id: 'hyphen-date-' + match.index,
             type: 'error',
             title: '잘못된 날짜 표기법',
-            description: '날짜는 "2025. 9. 10." 형식으로 표기해야 합니다.',
+            description: '날짜는 "2025. 9. 2." 형식으로 표기해야 합니다.',
             position: match.index,
             original: original,
             suggestion: corrected,
@@ -405,20 +410,31 @@ function checkDateTimeFormat(text) {
         });
     }
 
-    // 3. 잘못된 온점 날짜 검사
+    // 3. 온점 날짜 띄어쓰기 검사 (2025.09.02.)
     const dotDateRegex = /\d{4}\.\d{1,2}\.\d{1,2}\./g;
     while ((match = dotDateRegex.exec(text)) !== null) {
         const original = match[0];
-        const hasSpaces = /\d{4}\. \d{1,2}\. \d{1,2}\./.test(original);
+        console.log('온점 날짜 발견:', original);
 
-        if (!hasSpaces) {
-            const corrected = original.replace(/(\d{4})\.(\d{1,2})\.(\d{1,2})\./, '$1. $2. $3.');
+        // 이미 올바른 띄어쓰기가 있는지 확인
+        const correctSpacingRegex = /\d{4}\. \d{1,2}\. \d{1,2}\./;
+        const hasCorrectSpacing = correctSpacingRegex.test(original);
+
+        if (!hasCorrectSpacing) {
+            // 2025.09.02. → 2025. 9. 2.
+            const corrected = original.replace(/(\d{4})\.(\d{1,2})\.(\d{1,2})\./, (fullMatch, year, month, day) => {
+                const cleanMonth = parseInt(month).toString(); // 09 → 9
+                const cleanDay = parseInt(day).toString();     // 02 → 2
+                return year + '. ' + cleanMonth + '. ' + cleanDay + '.';
+            });
+
+            console.log('온점 날짜 수정:', original, '→', corrected);
 
             issues.push({
                 id: 'dot-spacing-' + match.index,
                 type: 'error',
-                title: '날짜 띄어쓰기 오류',
-                description: '온점 뒤에 한 칸 띄어써야 합니다.',
+                title: '날짜 띄어쓰기 및 형식 오류',
+                description: '온점 뒤에 한 칸 띄어써야 하며, 월과 일이 한 자리일 때는 앞에 0을 붙이지 않습니다.',
                 position: match.index,
                 original: original,
                 suggestion: corrected,
@@ -427,17 +443,18 @@ function checkDateTimeFormat(text) {
         }
     }
 
-    // 4. 앞자리 0이 있는 날짜 검사
+    // 4. 올바른 형식이지만 앞자리 0이 있는 경우 (2025. 09. 02.)
     const zeroDateRegex = /\d{4}\. 0(\d)\. /g;
     while ((match = zeroDateRegex.exec(text)) !== null) {
         const original = match[0];
         const corrected = original.replace('0' + match[1], match[1]);
+        console.log('앞자리 0 날짜 발견:', original, '→', corrected);
 
         issues.push({
-            id: 'zero-date-' + match.index,
+            id: 'zero-month-' + match.index,
             type: 'error',
             title: '날짜 앞자리 0 오류',
-            description: '월과 일이 한자리일 때는 앞에 0을 붙이지 않습니다.',
+            description: '월이 한 자리일 때는 앞에 0을 붙이지 않습니다.',
             position: match.index,
             original: original,
             suggestion: corrected,
@@ -445,7 +462,26 @@ function checkDateTimeFormat(text) {
         });
     }
 
-    // 5. 시간 표기 검사 - 16시 30분
+    // 5. 일자 앞자리 0 검사 (2025. 9. 02.)
+    const zeroDayRegex = /\d{4}\. \d{1,2}\. 0(\d)\./g;
+    while ((match = zeroDayRegex.exec(text)) !== null) {
+        const original = match[0];
+        const corrected = original.replace(' 0' + match[1] + '.', ' ' + match[1] + '.');
+        console.log('앞자리 0 일자 발견:', original, '→', corrected);
+
+        issues.push({
+            id: 'zero-day-' + match.index,
+            type: 'error',
+            title: '날짜 앞자리 0 오류',
+            description: '일이 한 자리일 때는 앞에 0을 붙이지 않습니다.',
+            position: match.index,
+            original: original,
+            suggestion: corrected,
+            rule: '공문서 작성 편람'
+        });
+    }
+
+    // 6. 시간 표기 검사 - 16시 30분
     const koreanTimeRegex = /\d{1,2}시\s*\d{1,2}분/g;
     while ((match = koreanTimeRegex.exec(text)) !== null) {
         const original = match[0];
@@ -454,6 +490,7 @@ function checkDateTimeFormat(text) {
             const hour = timeMatch[1].padStart(2, '0');
             const minute = timeMatch[2].padStart(2, '0');
             const corrected = hour + ':' + minute;
+            console.log('한국어 시간 발견:', original, '→', corrected);
 
             issues.push({
                 id: 'korean-time-' + match.index,
@@ -468,7 +505,7 @@ function checkDateTimeFormat(text) {
         }
     }
 
-    // 6. 시간만 있는 경우 - 16시
+    // 7. 시간만 있는 경우 - 16시
     const koreanHourRegex = /\d{1,2}시(?!\s*\d)/g;
     while ((match = koreanHourRegex.exec(text)) !== null) {
         const original = match[0];
@@ -476,6 +513,7 @@ function checkDateTimeFormat(text) {
         if (hourMatch) {
             const hour = hourMatch[1].padStart(2, '0');
             const corrected = hour + ':00';
+            console.log('한국어 시각 발견:', original, '→', corrected);
 
             issues.push({
                 id: 'korean-hour-' + match.index,
@@ -489,6 +527,9 @@ function checkDateTimeFormat(text) {
             });
         }
     }
+
+    console.log('발견된 날짜/시간 오류:', issues.length);
+    console.log('=== 날짜 표기법 검사 완료 ===');
 
     currentValidationResults.errors.push(...issues);
 }
