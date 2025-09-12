@@ -167,7 +167,7 @@ function init() {
 
     setupEventListeners();
     updateCharCount();
-    updateDocumentType(); // 초기 문서 유형 설정
+    updateDocumentType();
     addSimpleCopyrightFooter();
     console.log('App initialized successfully');
     console.log('Current document type:', documentType);
@@ -220,7 +220,8 @@ function setupEventListeners() {
             console.log('Document type changed to:', documentType);
 
             // 문서 유형 변경 시 시각적 피드백
-            showMessage(`문서 유형이 "${documentType === 'external' ? '대외문서' : '내부결재'}"로 변경되었습니다.`, 'info');
+            const typeName = documentType === 'external' ? '대외문서' : '내부결재';
+            showMessage('문서 유형이 "' + typeName + '"로 변경되었습니다.', 'info');
         });
     }
 
@@ -289,7 +290,8 @@ async function startValidation() {
 
     // 검증 전 현재 문서 유형 확인
     console.log('Starting validation for document type:', documentType);
-    showMessage(`${documentType === 'external' ? '대외문서' : '내부결재'} 검증을 시작합니다.`, 'info');
+    const typeName = documentType === 'external' ? '대외문서' : '내부결재';
+    showMessage(typeName + ' 검증을 시작합니다.', 'info');
 
     if (elements.validateBtn) {
         elements.validateBtn.disabled = true;
@@ -491,62 +493,86 @@ function checkDateTimeFormat(text) {
     currentValidationResults.errors.push(...issues);
 }
 
-// 문서 어미 검사 - 강화된 디버깅 포함
+// 문서 어미 검사 - 대외문서에서 내부결재 어미 정확 감지
 function checkDocumentEnding(text) {
     const issues = [];
 
     console.log('=== 문서 어미 검사 시작 ===');
     console.log('Document type:', documentType);
-    console.log('Text:', text.substring(Math.max(0, text.length - 100))); // 마지막 100자
+    console.log('Text end:', text.substring(Math.max(0, text.length - 100)));
 
-    // "끝." 앞의 마지막 문장을 찾기
+    // "끝." 앞의 마지막 문장을 찾기 - 더 정확한 패턴
     const beforeEndPattern = /([^.!?]*)\.\s*끝\./;
     const match = beforeEndPattern.exec(text);
 
     if (match) {
-        const lastSentence = match[1].trim();
-        console.log('마지막 문장 발견:', lastSentence);
+        const fullLastSentence = match[1].trim();
+        console.log('마지막 문장 전체:', fullLastSentence);
+
+        // 마지막 문장에서 실제 어미 부분만 추출 (마지막 10-20자 정도)
+        const words = fullLastSentence.split(/\s+/);
+        const lastPart = words[words.length - 1] || '';
+        const lastSentence = fullLastSentence.length > 20 ? 
+            fullLastSentence.substring(fullLastSentence.length - 20) : fullLastSentence;
+
+        console.log('어미 검사 대상:', lastSentence);
+        console.log('마지막 단어:', lastPart);
 
         if (documentType === 'external') {
-            console.log('대외문서 어미 검사 중...');
-            // 대외문서: ~합니다, ~드립니다, ~바랍니다 등으로 끝나야 함
-            const externalEndings = [
-                '합니다', '드립니다', '바랍니다', '드리겠습니다', 
-                '요청합니다', '제출합니다', '보고합니다', '신청합니다',
-                '통보합니다', '협조바랍니다', '검토바랍니다', '회신바랍니다'
-            ];
+            console.log('🔍 대외문서 어미 검사 중...');
 
-            const hasCorrectEnding = externalEndings.some(ending => {
-                const result = lastSentence.endsWith(ending);
-                console.log(`"${ending}" 검사:`, result);
-                return result;
-            });
+            // 먼저 내부결재 어미가 있는지 확인 (우선 검사)
+            const hasInternalEnding = lastSentence.includes('하고자 합니다') || 
+                                    lastSentence.includes('고자 합니다') ||
+                                    lastSentence.endsWith('하고자 합니다') || 
+                                    lastSentence.endsWith('고자 합니다');
 
-            console.log('대외문서 올바른 어미:', hasCorrectEnding);
+            console.log('내부결재 어미 발견:', hasInternalEnding);
 
-            if (!hasCorrectEnding) {
-                // 잘못된 어미가 있는지 확인
-                if (lastSentence.includes('하고자') || lastSentence.includes('고자')) {
-                    console.log('내부결재 어미 발견 - 오류 추가');
+            if (hasInternalEnding) {
+                console.log('❌ 대외문서에 내부결재 어미 사용 - 오류 추가');
+                let correctedSentence = fullLastSentence;
+                if (correctedSentence.includes('하고자 합니다')) {
+                    correctedSentence = correctedSentence.replace(/하고자\s*합니다/g, '드립니다');
+                } else if (correctedSentence.includes('고자 합니다')) {
+                    correctedSentence = correctedSentence.replace(/고자\s*합니다/g, '드립니다');
+                }
+
+                issues.push({
+                    id: 'document-ending-wrong-external',
+                    type: 'error',
+                    title: '❌ 문서 어미 오류',
+                    description: '대외문서는 "~합니다", "~드립니다", "~바랍니다" 등으로 끝나야 합니다. 현재 내부결재 어미 "~하고자 합니다"를 사용하고 있습니다.',
+                    position: match.index,
+                    original: fullLastSentence,
+                    suggestion: correctedSentence,
+                    rule: '공문서 작성 편람 - 대외문서 어미'
+                });
+            } else {
+                // 내부결재 어미가 없으면 대외문서 어미 확인
+                const externalEndings = [
+                    '합니다', '드립니다', '바랍니다', '드리겠습니다', 
+                    '요청합니다', '제출합니다', '보고합니다', '신청합니다',
+                    '통보합니다', '협조바랍니다', '검토바랍니다', '회신바랍니다'
+                ];
+
+                const hasCorrectEnding = externalEndings.some(ending => {
+                    const result = lastSentence.endsWith(ending) || lastPart.endsWith(ending);
+                    console.log('"' + ending + '" 검사:', result);
+                    return result;
+                });
+
+                console.log('대외문서 올바른 어미:', hasCorrectEnding);
+
+                if (!hasCorrectEnding) {
+                    console.log('⚠️ 일반적인 어미 오류 - 경고 추가');
                     issues.push({
-                        id: 'document-ending-wrong',
-                        type: 'error',
-                        title: '문서 어미 오류',
-                        description: '대외문서는 "~합니다", "~드립니다", "~바랍니다" 등으로 끝나야 합니다. 현재 내부결재 어미를 사용하고 있습니다.',
-                        position: match.index,
-                        original: lastSentence,
-                        suggestion: lastSentence.replace(/(하고자\s*합니다|고자\s*합니다)$/, '드립니다'),
-                        rule: '공문서 작성 편람 - 대외문서 어미'
-                    });
-                } else {
-                    console.log('일반적인 어미 오류 - 경고 추가');
-                    issues.push({
-                        id: 'document-ending-check',
+                        id: 'document-ending-check-external',
                         type: 'warning',
                         title: '문서 어미 확인 필요',
                         description: '대외문서는 "~합니다", "~드립니다", "~바랍니다" 등으로 끝나야 합니다.',
                         position: match.index,
-                        original: lastSentence,
+                        original: fullLastSentence,
                         suggestion: '적절한 대외문서 어미로 수정 필요',
                         rule: '공문서 작성 편람 - 대외문서 어미'
                     });
@@ -554,63 +580,63 @@ function checkDocumentEnding(text) {
             }
 
         } else if (documentType === 'internal') {
-            console.log('내부결재 어미 검사 중...');
-            // 내부결재: ~하고자 합니다, ~고자 합니다만 허용
-            const internalEndings = [
-                '하고자 합니다', '고자 합니다'
-            ];
+            console.log('🔍 내부결재 어미 검사 중...');
 
-            const hasCorrectEnding = internalEndings.some(ending => {
-                const result = lastSentence.endsWith(ending);
-                console.log(`"${ending}" 검사:`, result);
-                return result;
-            });
+            // 내부결재 허용 어미 확인
+            const hasCorrectInternalEnding = lastSentence.endsWith('하고자 합니다') || 
+                                           lastSentence.endsWith('고자 합니다');
 
-            console.log('내부결재 올바른 어미:', hasCorrectEnding);
+            console.log('내부결재 올바른 어미:', hasCorrectInternalEnding);
 
-            if (!hasCorrectEnding) {
-                // 잘못된 어미가 있는지 확인 (대외문서 어미 또는 제외된 내부결재 어미)
-                if (lastSentence.endsWith('합니다') && !lastSentence.includes('하고자') && !lastSentence.includes('고자')) {
-                    console.log('대외문서 어미 발견 - 오류 추가');
+            if (!hasCorrectInternalEnding) {
+                // 대외문서 어미를 사용하는지 확인
+                const externalEndingFound = lastSentence.endsWith('합니다') && 
+                                          !lastSentence.includes('하고자') && 
+                                          !lastSentence.includes('고자');
+
+                if (externalEndingFound) {
+                    console.log('❌ 내부결재에 대외문서 어미 사용 - 오류 추가');
+                    const correctedSentence = fullLastSentence.replace(/합니다$/, '하고자 합니다');
+
                     issues.push({
-                        id: 'document-ending-wrong',
+                        id: 'document-ending-wrong-internal',
                         type: 'error',
-                        title: '문서 어미 오류',
+                        title: '❌ 문서 어미 오류',
                         description: '내부결재는 "~하고자 합니다" 또는 "~고자 합니다"로 끝나야 합니다. 현재 대외문서 어미를 사용하고 있습니다.',
                         position: match.index,
-                        original: lastSentence,
-                        suggestion: lastSentence.replace(/합니다$/, '하고자 합니다'),
+                        original: fullLastSentence,
+                        suggestion: correctedSentence,
                         rule: '공문서 작성 편람 - 내부결재 어미'
                     });
                 } else if (lastSentence.endsWith('하고자 함') || lastSentence.endsWith('하고자 하오니')) {
-                    // 제외된 내부결재 어미 사용
-                    console.log('제외된 내부결재 어미 발견 - 오류 추가');
-                    let corrected = lastSentence;
-                    if (lastSentence.endsWith('하고자 함')) {
-                        corrected = lastSentence.replace(/하고자 함$/, '하고자 합니다');
-                    } else if (lastSentence.endsWith('하고자 하오니')) {
-                        corrected = lastSentence.replace(/하고자 하오니$/, '하고자 합니다');
+                    // 제외된 내부결재 어미
+                    console.log('❌ 제외된 내부결재 어미 발견 - 오류 추가');
+                    let corrected = fullLastSentence;
+                    if (corrected.endsWith('하고자 함')) {
+                        corrected = corrected.replace(/하고자\s*함$/, '하고자 합니다');
+                    } else if (corrected.endsWith('하고자 하오니')) {
+                        corrected = corrected.replace(/하고자\s*하오니$/, '하고자 합니다');
                     }
 
                     issues.push({
-                        id: 'document-ending-wrong',
+                        id: 'document-ending-excluded',
                         type: 'error',
-                        title: '문서 어미 오류',
+                        title: '❌ 문서 어미 오류',
                         description: '내부결재는 "~하고자 합니다" 또는 "~고자 합니다"로 끝나야 합니다.',
                         position: match.index,
-                        original: lastSentence,
+                        original: fullLastSentence,
                         suggestion: corrected,
                         rule: '공문서 작성 편람 - 내부결재 어미'
                     });
                 } else {
-                    console.log('일반적인 어미 오류 - 경고 추가');
+                    console.log('⚠️ 일반적인 어미 오류 - 경고 추가');
                     issues.push({
-                        id: 'document-ending-check',
+                        id: 'document-ending-check-internal',
                         type: 'warning',
                         title: '문서 어미 확인 필요',
                         description: '내부결재는 "~하고자 합니다" 또는 "~고자 합니다"로 끝나야 합니다.',
                         position: match.index,
-                        original: lastSentence,
+                        original: fullLastSentence,
                         suggestion: '적절한 내부결재 어미로 수정 필요',
                         rule: '공문서 작성 편람 - 내부결재 어미'
                     });
@@ -708,7 +734,7 @@ function checkSpellingAndSpacing(text) {
     });
 }
 
-// 교정된 텍스트 생성 - 마침표 중복 문제 해결
+// 교정된 텍스트 생성
 function generateCorrectedText() {
     let corrected = currentValidationResults.originalText;
 
@@ -750,7 +776,9 @@ function generateCorrectedText() {
 
 // 검증 결과 표시
 function displayValidationResults() {
-    const { errors, warnings, suggestions } = currentValidationResults;
+    const errors = currentValidationResults.errors;
+    const warnings = currentValidationResults.warnings;
+    const suggestions = currentValidationResults.suggestions;
 
     console.log('검증 결과:', {
         errors: errors.length,
@@ -795,7 +823,8 @@ function updateSummaryStats(errorCount, warningCount, suggestionCount) {
 function updateValidationSummary() {
     if (!elements.validationSummary) return;
 
-    const { errors, warnings } = currentValidationResults;
+    const errors = currentValidationResults.errors;
+    const warnings = currentValidationResults.warnings;
 
     elements.validationSummary.classList.remove('has-errors', 'has-warnings', 'success');
 
@@ -829,7 +858,9 @@ function handleTabClick(e) {
 function showTabContent(tab) {
     if (!elements.resultsContent) return;
 
-    const { errors, warnings, suggestions } = currentValidationResults;
+    const errors = currentValidationResults.errors;
+    const warnings = currentValidationResults.warnings;
+    const suggestions = currentValidationResults.suggestions;
     let issues = [];
 
     switch (tab) {
@@ -921,7 +952,8 @@ function loadSampleDocument() {
         const sampleText = sampleDocuments[documentType] || sampleDocuments.external;
         elements.documentInput.value = sampleText;
         updateCharCount();
-        showMessage(`${documentType === 'external' ? '대외문서' : '내부결재'} 예시가 로드되었습니다.`, 'info');
+        const typeName = documentType === 'external' ? '대외문서' : '내부결재';
+        showMessage(typeName + ' 예시가 로드되었습니다.', 'info');
     }
 }
 
